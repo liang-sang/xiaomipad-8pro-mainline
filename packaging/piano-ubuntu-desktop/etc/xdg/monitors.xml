@@ -4,8 +4,9 @@
   Mutter reads monitors.xml in each XDG system configuration directory as a
   system configuration; a user's configuration for the same monitors replaces
   it, and Mutter never copies it into a home directory.  The native DSI-1 panel
-  now reports a physical size (250x177 mm), but we still pin 200 % and 144 Hz
-  as the product default; 144 Hz matches the stock OS.  Keep None-1 at 200 %
+  now reports a physical size (250x177 mm), but we still pin 200 % and 120 Hz
+  as the product default: 120 Hz saves power over 144 Hz, which stays
+  selectable in Settings.  Keep None-1 at 200 %
   and 60 Hz for the firmware-scanout fallback (simpledrm, no physical size).
   Neither connector has EDID, so vendor, product and serial are "unknown".
   Both layout modes are listed because the configuration key includes the mode.
@@ -28,7 +29,7 @@
         <mode>
           <width>3200</width>
           <height>2136</height>
-          <rate>144.000</rate>
+          <rate>120.000</rate>
         </mode>
       </monitor>
     </logicalmonitor>
@@ -50,7 +51,7 @@
         <mode>
           <width>3200</width>
           <height>2136</height>
-          <rate>144.000</rate>
+          <rate>120.000</rate>
         </mode>
       </monitor>
     </logicalmonitor>

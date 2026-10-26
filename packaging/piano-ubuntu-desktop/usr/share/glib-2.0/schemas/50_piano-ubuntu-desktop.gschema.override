@@ -9,3 +9,5 @@ enabled-extensions=['piano-osk-guard@io.github.piano']
 
 [org.gnome.settings-daemon.plugins.power]
 power-button-action='lock'
+# On battery, suspend after five idle minutes instead of fifteen.
+sleep-inactive-battery-timeout=300
