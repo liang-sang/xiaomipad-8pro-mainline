@@ -2,7 +2,7 @@
 
 [English](BUILD.md) | [项目概览](../README.zh-CN.md) | [发布产物](RELEASE.md)
 
-本指南说明如何从固定输入构建发布产物：内核 → ABI 条目 → 内核包 → 设备包与固件包 →
+本指南说明如何从固定输入构建发布产物：内核 → 发布记录 → 内核包 → 设备包与固件包 →
 启动镜像组 → 根镜像 → 发布目录。根镜像 chroot 后端需要 root，其余工具以普通用户运行。
 构建工具不访问平板；构建成功不代表硬件验证通过。各阶段预期输出及需记录的身份见
 [代理与操作者指南](AGENT-GUIDE.zh-CN.md) §3。
@@ -45,19 +45,21 @@ sh tools/fetch-busybox-arm64.sh        # 预期 ".../usr/bin/busybox: OK"
 ```bash
 git clone --branch piano/dev https://github.com/yzddmr6/linux-sm8750-piano ../linux
 git -C ../linux checkout "$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])')"
-CONFIG_FRAGMENT_EXTRA="arch/arm64/configs/piano-desktop-diag.config arch/arm64/configs/piano-persistent.config arch/arm64/configs/piano-release.config" \
 BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash tools/build-kernel.sh
 # 预期 "Piano kernel build complete: .../out/kernel-release/build-result.json (boot packaging is separate)"
 ```
 
 - `build-kernel.sh` 拒绝 HEAD 与 `kernel/source.json` 不符或存在未提交跟踪改动的内核树。
-  基础配置片段最先合并，随后按 `CONFIG_FRAGMENT_EXTRA` 的顺序合并，`piano-release.config` 放在最后。
-- 上游基线 tag 由内核顶层 Makefile 中的版本决定，必须存在且为 HEAD 的祖先。
-  `tools/kernel_tag.py`、`build-kernel.sh` 和 `build-kernel-deb.py` 使用同一规则，不把项目 tag 当作上游版本。
-- 增量构建复用 OUT 目录；已安装 ccache 时自动使用。更换工具链或源码位置时使用新的 OUT。
-- 不含 `piano-release.config` 的构建保留诊断后缀，不能打包。
-- 产品构建使用 `BUILD_MODULES=1`，交付与内核匹配的模块；启动必需的依赖须内建或完整纳入发行版 initrd。
-  内核驱动、DTS 和配置维护在独立内核仓库。
+  始终按顺序合并 `release_config_fragments`；`CONFIG_FRAGMENT_EXTRA` 仅供追加片段，路径去重后
+  保留首次出现的位置。额外片段必须是内核仓库已跟踪的文件。
+- 仅生成 `.config` 时，在上述命令末尾加 `--config-only`；不会编译 Image、DTB 或模块，也不生成
+  可打包的 `build-result.json`。
+- 上游版本取自内核顶层 Makefile，并核对对应 tag 为 HEAD 的祖先；`kernel/source.json` 的
+  `upstream_tag` 和 `kernel_release` 给出发布预期值。
+- 增量构建复用 OUT 目录；更换工具链或源码位置时使用新的 OUT。已安装 ccache 时自动使用。
+- 产品构建使用 `BUILD_MODULES=1`，交付匹配模块；启动必需依赖须内建或完整纳入发行版 initrd。
+- 打包器要求 `build-result.json` 的片段列表及顺序与 `release_config_fragments` 完全一致，并继续
+  校验 ABI 记录中的内核提交和最终 `.config` 哈希；缺少、增加或重排片段的构建均拒绝打包。
 
 ## 2. 发布记录
 

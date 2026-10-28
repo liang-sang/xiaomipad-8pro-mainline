@@ -225,6 +225,11 @@ def main():
         except BlockingIOError:
             parser.error(f'Kernel build output is in use: {kout}')
         build = json.loads((kout / 'build-result.json').read_text())
+        pin = json.loads((Path(__file__).resolve().parents[1] / 'kernel/source.json').read_text())
+        fragments = pin['release_config_fragments']
+        if not fragments or build.get('config_fragments') != fragments:
+            parser.error('Build config_fragments differ from kernel/source.json release_config_fragments; '
+                         'rebuild with tools/build-kernel.sh using the release fragments')
         for name, expected in build['files'].items():
             if sha(kout / name) != expected:
                 parser.error(f'Build artifact differs from build-result.json: {name}')

@@ -93,18 +93,14 @@ python3 -S tools/stage-firmware.py --firmware-dir <stock modem_a image/ director
 
 ### 3.1 内核
 
-```bash
-CONFIG_FRAGMENT_EXTRA="arch/arm64/configs/piano-desktop-diag.config arch/arm64/configs/piano-persistent.config arch/arm64/configs/piano-release.config" \
-BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash tools/build-kernel.sh
-# 预期 "Piano kernel build complete: .../out/kernel-release/build-result.json (boot packaging is separate)"
-python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_release"])' out/kernel-release/build-result.json
-# 预期 "7.2.6-piano<N>"
-```
+按[构建指南 §1](build.zh-CN.md#1-内核)构建；发布片段自动合并，产品构建使用 `BUILD_MODULES=1`。
+只需检查配置时用 `--config-only`。构建完成后，读取记录并与锁文件比较：
 
-- 基础片段（`kernel/source.json` 的 `config`）最先合并；`CONFIG_FRAGMENT_EXTRA` 按顺序给出其余
-  `release_config_fragments`，`piano-release.config` 在最后。
-- 增量构建沿用同一 OUT（已安装 ccache 时自动使用）；更换工具链或源码位置需要新的 OUT。
-- 不含 `piano-release.config` 的构建保留诊断后缀（如 `7.2.6-piano-diag`），不能打包。
+```bash
+python3 -c 'import json; print(json.load(open("out/kernel-release/build-result.json"))["kernel_release"])'
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])'
+# 预期两行一致
+```
 
 ### 3.2 发布记录
 

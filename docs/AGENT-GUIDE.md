@@ -104,20 +104,15 @@ firmware packages (§3.5) → root filesystem (§4.4) → boot image set (§3.6)
 
 ### 3.1 Kernel
 
-```bash
-CONFIG_FRAGMENT_EXTRA="arch/arm64/configs/piano-desktop-diag.config arch/arm64/configs/piano-persistent.config arch/arm64/configs/piano-release.config" \
-BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash tools/build-kernel.sh
-# expect "Piano kernel build complete: .../out/kernel-release/build-result.json (boot packaging is separate)"
-python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_release"])' out/kernel-release/build-result.json
-# expect "7.2.6-piano<N>"
-```
+Build with [BUILD.md §1](BUILD.md#1-kernel); release fragments are merged automatically and product
+builds use `BUILD_MODULES=1`. Use `--config-only` to check configuration alone. After a full build,
+compare its recorded release with the lock:
 
-- The base fragment (`config` in `kernel/source.json`) is merged first; `CONFIG_FRAGMENT_EXTRA` takes
-  the remaining `release_config_fragments` in order, `piano-release.config` last.
-- Reuse the same OUT for incremental builds (ccache is used when installed); a different toolchain
-  or source location needs a new OUT.
-- A build without `piano-release.config` keeps a diagnostic suffix such as `7.2.6-piano-diag` and
-  cannot be packaged.
+```bash
+python3 -c 'import json; print(json.load(open("out/kernel-release/build-result.json"))["kernel_release"])'
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])'
+# expect identical lines
+```
 
 ### 3.2 Release record
 

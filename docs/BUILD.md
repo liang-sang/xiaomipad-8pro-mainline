@@ -2,7 +2,7 @@
 
 [中文](build.zh-CN.md) | [Project overview](../README.md) | [Release artefacts](RELEASE.md)
 
-How the release is built from pinned inputs: kernel → ABI entry → kernel package → device and
+How the release is built from pinned inputs: kernel → release record → kernel package → device and
 firmware packages → boot image set → root image → release directory. The root-image chroot backend
 requires root; the other tools run unprivileged. No build tool accesses a tablet. A successful build is not a hardware result. Each step's expected output and
 the identities to record are in [AGENT-GUIDE.md](AGENT-GUIDE.md) §3.
@@ -45,21 +45,24 @@ the boot profile and the signing key ([INSTALL.md](INSTALL.md#3-collect-your-uni
 ```bash
 git clone --branch piano/dev https://github.com/yzddmr6/linux-sm8750-piano ../linux
 git -C ../linux checkout "$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])')"
-CONFIG_FRAGMENT_EXTRA="arch/arm64/configs/piano-desktop-diag.config arch/arm64/configs/piano-persistent.config arch/arm64/configs/piano-release.config" \
 BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash tools/build-kernel.sh
 # expect "Piano kernel build complete: .../out/kernel-release/build-result.json (boot packaging is separate)"
 ```
 
-- `build-kernel.sh` refuses a tree whose HEAD differs from `kernel/source.json` or that has
-  uncommitted tracked changes. The base fragment is merged first, then `CONFIG_FRAGMENT_EXTRA` in
-  order, `piano-release.config` last.
-- The upstream base is the tag of the version in the kernel's top-level Makefile
-  (`python3 tools/kernel_tag.py ../linux` prints `v7.2.6`); it must exist and be an ancestor of HEAD.
-  `build-kernel.sh` and `build-kernel-deb.py` both use it, so project tags on the kernel repository
-  are never taken for the upstream version.
-- Reuse the OUT directory for incremental builds (ccache is used when installed); a different
-  toolchain or source location needs a new one.
-- Without `piano-release.config` the release keeps a diagnostic suffix and cannot be packaged.
+- `build-kernel.sh` refuses a HEAD different from `kernel/source.json` or uncommitted tracked
+  kernel changes. It always merges `release_config_fragments` in order. `CONFIG_FRAGMENT_EXTRA`
+  appends tracked kernel files; duplicate paths are merged once at their first occurrence.
+- Append `--config-only` to the command above to generate only `.config`. It does not compile
+  Image, DTBs or modules and does not produce a packageable `build-result.json`.
+- The upstream version comes from the kernel's top-level Makefile and its tag must be an ancestor
+  of HEAD. `upstream_tag` and `kernel_release` in `kernel/source.json` give the release expectations.
+- Reuse OUT for incremental builds; a different toolchain or source location needs a new OUT.
+  ccache is used when installed.
+- Product builds use `BUILD_MODULES=1` and ship matching modules. Boot-critical dependencies must
+  be built in or fully available in the distribution initrd.
+- The packager requires the `build-result.json` fragment list and order to match
+  `release_config_fragments` exactly, as well as the ABI ledger's commit and final `.config` hash.
+  Missing, additional or reordered fragments are rejected.
 
 ## 2. Release record
 

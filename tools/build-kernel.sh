@@ -16,17 +16,19 @@ src=${KERNEL_SOURCE:-"$ws/kernel/linux"}
 out=${OUT_DIR:-"$ws/out/kernel-dev"}
 jobs=${JOBS:-$(nproc)}
 cross=${CROSS_COMPILE:-aarch64-linux-gnu-}
-fragment="$src/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["config"])' "$repo/kernel/source.json")"
-# Optional fragments merged after the pinned one, e.g. the remaining
-# release_config_fragments of kernel/source.json. They must be tracked files in
-# the kernel source, separated by spaces, and need their own OUT_DIR. The RAM
-# diagnostic variants and their fragments live on the kernel piano/diag branch.
+# Optional tracked kernel fragments, merged after release_config_fragments.
+# Repeated paths are merged only once, at their first occurrence.
 extra=${CONFIG_FRAGMENT_EXTRA:-}
 modules=${BUILD_MODULES:-0}
+config_only=0
 
 if [[ ${1:-} == --help ]]; then
-	echo "Usage: $0 (KERNEL_SOURCE, OUT_DIR, JOBS, CROSS_COMPILE, CONFIG_FRAGMENT_EXTRA, BUILD_MODULES=0|1 optional)"
+	echo "Usage: $0 [--config-only] (KERNEL_SOURCE, OUT_DIR, JOBS, CROSS_COMPILE, CONFIG_FRAGMENT_EXTRA, BUILD_MODULES=0|1 optional)"
 	exit 0
+fi
+if [[ ${1:-} == --config-only ]]; then
+	config_only=1
+	shift
 fi
 [[ $# == 0 ]] || { echo "Unexpected arguments; use --help" >&2; exit 2; }
 [[ $modules == 0 || $modules == 1 ]] || { echo 'BUILD_MODULES must be 0 or 1' >&2; exit 2; }
@@ -35,14 +37,30 @@ src=$(realpath "$src")
 	echo 'Kernel source must have its own Git repository.' >&2
 	exit 1
 }
-[[ -f $fragment ]]
-fragments=("$fragment")
+pinned=$(python3 - "$repo/kernel/source.json" <<'PY'
+import json, sys
+fragments = json.load(open(sys.argv[1]))['release_config_fragments']
+if (not isinstance(fragments, list) or not fragments
+        or any(not isinstance(f, str) or not f or any(c.isspace() for c in f) for f in fragments)):
+    raise SystemExit('release_config_fragments must be a nonempty list of kernel source paths')
+print('\n'.join(fragments))
+PY
+)
+mapfile -t paths <<<"$pinned"
 read -r -a extras <<<"$extra"
-for extra_path in "${extras[@]}"; do
-	git -C "$src" ls-files --error-unmatch -- "$extra_path" >/dev/null 2>&1 || {
-		echo "CONFIG_FRAGMENT_EXTRA must contain tracked kernel source paths: $extra_path" >&2; exit 1;
+fragments=()
+declare -A seen=()
+for path in "${paths[@]}" "${extras[@]}"; do
+	fragment=$(realpath -e "$src/$path")
+	[[ $fragment == "$src/"* && -f $fragment ]] || {
+		echo "Config fragment must be a file inside the kernel source: $path" >&2; exit 1;
 	}
-	fragments+=("$src/$extra_path")
+	git -C "$src" ls-files --error-unmatch -- "${fragment#"$src/"}" >/dev/null 2>&1 || {
+		echo "Config fragment must be tracked in the kernel source: $path" >&2; exit 1;
+	}
+	[[ ${seen[$fragment]:-} ]] && continue
+	seen[$fragment]=1
+	fragments+=("$fragment")
 done
 mkdir -p "$out"
 out=$(realpath "$out")
@@ -89,6 +107,7 @@ if [[ -f $out/.build-input && $(cat "$out/.build-input") != "$identity" ]]; then
 	echo 'Upstream version, toolchain or source/output location changed; select a new OUT_DIR.' >&2
 	exit 1
 fi
+rm -f "$out/build-result.json"
 printf '%s\n' "$identity" >"$out/.build-input"
 if [[ ! -f $out/.config || ! -f $out/.recipe || $(cat "$out/.recipe") != "$recipe" ]]; then
 	make "${args[@]}" defconfig >"$out/configure.log" 2>&1
@@ -110,6 +129,11 @@ while IFS= read -r setting; do
 		;;
 	esac
 done < <(cat "${fragments[@]}")
+
+if [[ $config_only == 1 ]]; then
+	sha256sum "$out/.config"
+	exit 0
+fi
 
 printf 'Building %s with %s (%s jobs)\n' "$head" "$toolchain" "$jobs"
 module_target=()
