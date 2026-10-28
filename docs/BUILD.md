@@ -2,7 +2,7 @@
 
 [中文](build.zh-CN.md) | [Project overview](../README.md) | [Release artefacts](RELEASE.md)
 
-How the release is built from pinned inputs: kernel → release record → kernel package → device and
+How the release is built from pinned inputs: kernel → installable build record → kernel package → device and
 firmware packages → boot image set → root image → release directory. The root-image chroot backend
 requires root; the other tools run unprivileged. No build tool accesses a tablet. A successful build is not a hardware result. Each step's expected output and
 the identities to record are in [AGENT-GUIDE.md](AGENT-GUIDE.md) §3.
@@ -38,7 +38,7 @@ sh tools/fetch-busybox-arm64.sh        # expect ".../usr/bin/busybox: OK"
 | Ubuntu | 26.04 Desktop ARM64 ISO, SHA-256 `c2afd538d66fdd77377d03f1ed2ac76a34f1c116baecc9a8170d68f833121f57`; [ubuntu/26.04.sources](../ubuntu/26.04.sources); packages from a dated [snapshot](https://snapshot.ubuntu.com/) |
 | Device userspace | `device/*/source.json` |
 
-Owner inputs come from your own tablet and are never committed: the stock base DTB and DTBO entry,
+Private build inputs come from your own tablet: the stock base DTB and DTBO entry,
 the boot profile and the signing key ([INSTALL.md](INSTALL.md#3-collect-your-units-files)).
 
 ## 1. Kernel
@@ -65,10 +65,11 @@ BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash to
   `release_config_fragments` exactly, as well as the ABI ledger's commit and final `.config` hash.
   Missing, additional or reordered fragments are rejected.
 
-## 2. Release record
+## 2. Installable build record
 
 Rebuilding a release leaves `kernel/source.json` and `kernel/abi.json` unchanged.
-ABI allocation and pin updates are in the [maintainer release procedure](RELEASE.md#release-preparation-maintainers).
+ABI allocation and pin updates for all installable packaged builds, including candidates, are in
+the [maintainer packaging procedure](RELEASE.md#installable-kernel-packaging-maintainers).
 
 ### Local kernel development
 
@@ -78,7 +79,25 @@ changes; do not edit release locks to run an experiment. Start from `defconfig`,
 `scripts/kconfig/merge_config.sh`, append any local fragments, and run `olddefconfig`.
 Use `scripts/config` to set `CONFIG_LOCALVERSION` to a distinct development suffix such as
 `-piano-dev`. These builds are for local development and do not use the release packager;
-maintainers register a candidate through the release procedure above.
+maintainers register any installable package, including a candidate, through the packaging procedure above.
+
+```bash
+DEV_SRC=/path/to/your/kernel-checkout
+DEV_OUT="$PWD/out/kernel-local"
+mkdir -p "$DEV_OUT"
+export ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+make -C "$DEV_SRC" O="$DEV_OUT" defconfig
+mapfile -t DEV_FRAGMENTS < <(python3 - "$DEV_SRC" <<'CONFIG_PATHS'
+import json, pathlib, sys
+for name in json.load(open('kernel/source.json'))['release_config_fragments']:
+    print(pathlib.Path(sys.argv[1]) / name)
+CONFIG_PATHS
+)
+"$DEV_SRC/scripts/kconfig/merge_config.sh" -m -O "$DEV_OUT" "$DEV_OUT/.config" "${DEV_FRAGMENTS[@]}"
+"$DEV_SRC/scripts/config" --file "$DEV_OUT/.config" --set-str LOCALVERSION -piano-dev --disable LOCALVERSION_AUTO
+make -C "$DEV_SRC" O="$DEV_OUT" LOCALVERSION= olddefconfig
+make -C "$DEV_SRC" O="$DEV_OUT" LOCALVERSION= -j"$(nproc)" Image dtbs modules
+```
 
 ## 3. Boot DTB
 
@@ -100,11 +119,13 @@ Prepare a new one whenever the desktop DTB changes.
 ```bash
 python3 tools/build-kernel-deb.py --kernel-source ../linux --kernel-out out/kernel-release \
   --boot-dtb out/boot-dtb/piano-boot.dtb --maintainer 'Name <email>' --output out/kernel-deb-<N>
-# expect JSON with "package": "linux-image-7.2.6-piano<N>", "deb" and "deb_sha256"
+# expect JSON with "package": "linux-image-<release>", "deb" and "deb_sha256"
 ```
 
 The package holds the kernel, all DTBs, `piano-boot.dtb` and the matching modules. Its maintainer
 scripts run Ubuntu's dracut hook and the piano boot hook. Identical inputs give a byte-identical deb.
+Read `<release>` from `kernel_release` in `kernel/source.json`; use the output `manifest.json`
+for the deb filename and package version.
 
 ## 5. Device and firmware packages
 
@@ -126,6 +147,8 @@ python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYM
 mkdir -p out/audio
 m4 -I <audioreach-topology checkout> device/audio/Piano-Capture-Diag.m4 > out/audio/Piano-Capture-Diag.conf
 alsatplg -c out/audio/Piano-Capture-Diag.conf -o out/audio/Piano-Capture-Diag-tplg.bin
+m4 -I device/audio -I <audioreach-topology checkout> device/audio/Xiaomi-Pad-8-Pro.m4 > out/audio/Xiaomi-Pad-8-Pro.conf
+alsatplg -c out/audio/Xiaomi-Pad-8-Pro.conf -o out/audio/Xiaomi-Pad-8-Pro-tplg.bin
 python3 tools/build-firmware-deb.py --topology out/audio/Piano-Capture-Diag-tplg.bin \
   --card-topology out/audio/Xiaomi-Pad-8-Pro-tplg.bin \
   --maintainer 'Name <email>' --output out/firmware-deb
@@ -206,10 +229,10 @@ guest and 20 in the chroot, and 11 with `--base-cache` when only the kernel chan
 python3 tools/prepare-ubuntu-apt.py --rootfs out/ubuntu-desktop-pristine/ubuntu-desktop.squashfs \
   --snapshot <YYYYMMDDTHHMMSSZ> --output out/apt-release \
   --mozilla-firefox --download dracut device-tree-compiler openssh-server fake-hwclock systemd-zram-generator
-python3 tools/build-rootfs-image.py --squashfs out/ubuntu-desktop-pristine/ubuntu-desktop.squashfs ... \
-  --boot-profile <boot-profile.json> --boot-key <release signing key> --output out/rootfs-<version>
-# expect "state": "ROOT_IMAGE_BUILT_OFFLINE_CHECKS_PASS_NOT_BOOTED"
 ```
+
+Use the complete root-image command in [RELEASE.md](RELEASE.md#building-a-release); expect
+`"state": "ROOT_IMAGE_BUILT_OFFLINE_CHECKS_PASS_NOT_BOOTED"` when it finishes.
 
 Firefox is the unmodified ARM64 deb from [Mozilla's APT repository](https://support.mozilla.org/en-US/kb/install-firefox-linux),
 so it can use the image's Mesa stack. `--mozilla-firefox` authenticates the key, archived signed index
@@ -262,10 +285,15 @@ Optionally boot the image in QEMU with `check-rootfs-boot.py`, then assemble the
 ```bash
 python3 tools/build-release.py --rootfs-build out/rootfs-<version> \
   --boot-check out/rootfs-<version>-boot/result.json \
+  --maintenance out/maintenance-ram-<version> --changes packaging/release/changes/<version>.md \
   --forbid-file <your bluetooth-address> --forbid-file <your wlan-address> --forbid-file <your boot-profile.json> \
   --output out/release-<version>
 (cd out/release-<version> && sha256sum -c SHA256SUMS)
 ```
+
+First prepare the matching maintenance image and change list as in
+[RELEASE.md](RELEASE.md#building-a-release). Omit `--boot-check` if the optional QEMU boot was not
+run, and record that untested path in release validation.
 
 `--forbid-file` scans every output for identifiers of your unit. The release must be on the same
 filesystem as the root image build. Layout, contents and installation: [RELEASE.md](RELEASE.md) and

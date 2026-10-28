@@ -15,42 +15,14 @@ Conventions:
 - Status words: *verified on the test unit*; *not yet verified on the device*; *not yet available*
   (no tool exists); *manual steps* (standard commands, no project tool yet).
 
-## 1. Scope and safety rules
+## 1. Scope and operation boundaries
 
-1. **Bind every device command to the serial:** `adb -s <SERIAL>`, `fastboot -s <SERIAL>`,
-   `tools/piano-switch.py --serial <SERIAL>`, and `tools/piano-devmode-ssh.py --serial <SERIAL>` when
-   more than one tablet is attached. Never operate a device you have not identified.
-2. **One driver at a time.** Before a device command, make sure no other session is driving the
-   tablet; never overlap boots, writes or captures.
-   ```bash
-   pgrep -af 'fastboot|adb'      # expect: no fastboot or adb client of another session (the adb server is shared)
-   ```
-3. **Battery at 40 % or more before leaving Android**, from a fresh reading. Linux does not charge
-   the battery, also with USB connected. A charging indicator or time on the charger is not a reading.
-   ```bash
-   adb -s <SERIAL> shell dumpsys battery | grep level      # expect "level: 40" or higher
-   fastboot -s <SERIAL> getvar battery-soc-ok              # expect "battery-soc-ok: yes"
-   ```
-4. **Write set.** Switching writes only `init_boot_a`, `vendor_boot_a` and `boot_a`. Installation
-   also writes the LUN 0 GPT, `userdata`, `metadata`, `linux_rootfs` and `linux_data`. Never write
-   `vbmeta`, `dtbo`, any `_b` partition, `persist` or other calibration, modem or firmware
-   partitions, and never run `fastboot --set-active=b`: on the test unit slot B holds an older stock
-   chain that does not boot Android.
-5. **Keep a way back.**
-   - Power + Volume Down enters Fastboot from any state.
-   - Keep host copies of the Android set and of the current Ubuntu set (§6.6).
-   - Boot new images once as a bounded debug RAM boot (§7.2) before writing them to slot A.
-   - Before a release cold boot with nobody at the tablet, enable developer mode (§7.1): release
-     images expose no USB function otherwise.
-6. **Back up before any partition write** (§4.2). `sdX` names change between boots and backup file
-   names are not device names: select targets by UFS controller, LUN, GPT GUID, label and geometry.
-7. **On a failure**, stop and locate the earliest failing layer (transfer, device commit, boot,
-   handshake). Do not repeat a destructive command after one failed status query, do not re-flash
-   filesystems that were written successfully, and do not interrupt a write that is still running;
-   monitor its progress separately.
-8. **Never commit** to either repository: serial numbers, the Bluetooth and Wi-Fi addresses, touch
-   calibration, the boot profile, `/etc/piano/*`, the signing key, backups, stock files other than
-   the in-repo `firmware/` set, raw logs and captures. Keep them in the ignored `private/` directory or outside the repository.
+Read [AGENTS.md](../AGENTS.md) for execution and privacy boundaries.
+[FLASHING.md](FLASHING.md#never-write) defines device selection, battery checks, write boundaries
+and recovery; [INSTALL.md](INSTALL.md#2-back-up) defines installation backups.
+Current hardware behavior and charging limitations are in [STATUS.md](STATUS.md).
+Use the procedures below for the selected operation. Prepare the developer connection in §7.1
+before an unattended cold boot.
 
 ## 2. Repositories and pins
 
@@ -68,10 +40,13 @@ Conventions:
 ```bash
 git rev-parse HEAD                                          # integration commit, record it
 git clone --branch piano/dev https://github.com/yzddmr6/linux-sm8750-piano ../linux
+git -C ../linux checkout "$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])')"
 python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])'
 git -C ../linux rev-parse HEAD                              # expect the same commit
 git -C ../linux status --porcelain --untracked-files=no     # expect no output
-python3 tools/kernel_tag.py ../linux                        # expect "v7.2.6" (upstream tag of the Makefile version)
+python3 tools/kernel_tag.py ../linux
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["upstream_tag"])'
+# expect identical upstream tags
 sh tools/fetch-aosp-mkbootimg.sh                            # pinned checkout in tools/local/aosp-mkbootimg
 sh tools/fetch-aosp-avb.sh                                # verify the pinned commit, SHA-256 and version
 sh tools/fetch-busybox-arm64.sh                             # expect ".../usr/bin/busybox: OK"
@@ -98,9 +73,9 @@ python3 -S tools/stage-firmware.py --firmware-dir <stock modem_a image/ director
 
 ## 3. Build pipeline
 
-Order: kernel (§3.1) → release record (§3.2) → boot DTB (§3.3) → kernel package (§3.4) → device and
+Order: kernel (§3.1) → installable build record (§3.2) → boot DTB (§3.3) → kernel package (§3.4) → device and
 firmware packages (§3.5) → root filesystem (§4.4) → boot image set (§3.6). Host tools are listed in
-[build.zh-CN.md](build.zh-CN.md); additionally `dpkg-deb`, `python3-debian`, `device-tree-compiler`
+[BUILD.md](BUILD.md); additionally `dpkg-deb`, `python3-debian`, `device-tree-compiler`
 (`fdtget`/`fdtput`), `python3-libfdt`, AOSP libufdt's `ufdt_apply_overlay`, `m4` and `alsatplg`.
 
 ### 3.1 Kernel
@@ -115,10 +90,10 @@ python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_rel
 # expect identical lines
 ```
 
-### 3.2 Release record
+### 3.2 Installable build record
 
-ABI allocation, kernel pins and release notes are defined in
-[RELEASE.md](RELEASE.md#release-preparation-maintainers). Rebuilding a release does not change its
+Installable-build ABI allocation (including candidates) and kernel pins are defined in
+[RELEASE.md](RELEASE.md#installable-kernel-packaging-maintainers). Rebuilding a release does not change its
 locks; see [BUILD.md](BUILD.md#local-kernel-development) for local development.
 
 ### 3.3 Boot DTB
@@ -145,7 +120,7 @@ the two commits differ in `arch/arm64/boot/dts/`, `Documentation/devicetree/bind
 ```bash
 python3 tools/build-kernel-deb.py --kernel-source ../linux --kernel-out out/kernel-release \
   --boot-dtb out/boot-dtb/piano-boot.dtb --maintainer 'Name <email>' --output out/kernel-deb-<N>
-# expect JSON: "package": "linux-image-7.2.6-piano<N>", "version": "7.2.6-<N>.1", "deb", "deb_sha256"
+# expect JSON: "package": "linux-image-<release>", "version": "<package-version>", "deb", "deb_sha256"
 ```
 
 The package holds `/boot/vmlinuz-<release>` (uncompressed Image), `System.map`, `config`, all DTBs
@@ -165,7 +140,7 @@ make -C device/piano-thp OUT="$PWD/out/piano-thp-arm64" CXX=aarch64-linux-gnu-g+
   JSON_INCLUDE="$PWD/out/json-include" LDFLAGS='-static-libstdc++ -static-libgcc -Wl,-z,relro,-z,now' \
   all test RUNNER='qemu-aarch64-static -L /usr/aarch64-linux-gnu'
 file out/piano-thp-arm64/piano-thp-live      # expect "ARM aarch64 ... dynamically linked, interpreter /lib/ld-linux-aarch64.so.1"
-# Mesa 26.2.0 with the A830 patch (cross file and sysroot: build.zh-CN.md)
+# Mesa 26.2.0 with the A830 patch (cross file and sysroot: BUILD.md)
 MESA_SOURCE=<Mesa checkout at mesa/source.json> CROSS_FILE=<arm64 cross file> \
   OUT_DIR="$PWD/out/mesa" bash tools/build-mesa.sh
 
@@ -179,6 +154,8 @@ python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYM
 mkdir -p out/audio
 m4 -I <audioreach-topology checkout> device/audio/Piano-Capture-Diag.m4 > out/audio/Piano-Capture-Diag.conf
 alsatplg -c out/audio/Piano-Capture-Diag.conf -o out/audio/Piano-Capture-Diag-tplg.bin
+m4 -I device/audio -I <audioreach-topology checkout> device/audio/Xiaomi-Pad-8-Pro.m4 > out/audio/Xiaomi-Pad-8-Pro.conf
+alsatplg -c out/audio/Xiaomi-Pad-8-Pro.conf -o out/audio/Xiaomi-Pad-8-Pro-tplg.bin
 python3 tools/build-firmware-deb.py --topology out/audio/Piano-Capture-Diag-tplg.bin \
   --card-topology out/audio/Xiaomi-Pad-8-Pro-tplg.bin \
   --maintainer 'Name <email>' --output out/firmware-deb
@@ -250,7 +227,7 @@ initrds are not reproducible, so `vendor_boot.img` differs between builds with o
 The partitioning and root filesystem installer is not yet available. These steps reproduce the
 installation of the test unit (512 GB UFS) with standard commands; §4.5 gives the 256 GB values. With a release directory, the
 release root image and boot set replace §4.4 and the set of §3.6; the changes are listed in
-[RELEASE.md](RELEASE.md#installing-the-release).
+[INSTALL.md](INSTALL.md).
 
 ### 4.1 Prerequisites
 
@@ -300,7 +277,7 @@ adb -s <SERIAL> exec-out su -c 'dd if=/dev/block/sdX bs=4096 skip=<blocks-34> 2>
 | `bluetooth-address` | stock Android | `adb -s <SERIAL> shell settings get secure bluetooth_address > bluetooth-address` (one `XX:XX:XX:XX:XX:XX` line; `piano-boot-update` requires it) |
 | `wlan-address` (optional) | `wlan/wlan_mac.bin` on the stock `persist` partition | manual steps: one unicast `XX:XX:XX:XX:XX:XX` line; `piano-boot-update` uses it when present |
 | `thp-calibration.json` | `piano_nova_csot_thp_config.ini` or `piano_nova_boe_thp_config.ini` from the stock ODM partition, the file the unit's stock driver loads (`dmesg \| grep config_file_name` in stock Android; the test unit has the CSOT panel). The kernel detects the panel and loads its touch firmware; `piano-thp-live` picks the orientation from the kernel's `panel_vendor` and logs a `THP calibration error` line if the calibration belongs to the other panel | `python3 tools/extract-thp-calibration.py --input <ini> --output thp-calibration.json` |
-| `boot-signing.pem` | new owner key | `openssl genrsa -out boot-signing.pem 4096` |
+| `boot-signing.pem` | new local signing key | `openssl genrsa -out boot-signing.pem 4096` |
 | `boot-profile.json` | stock `boot_a`, `init_boot_a`, `vendor_boot_a` | manual steps, below |
 | `boot-partitions.json` | `sfdisk --json` of the boot LUN (LUN 4: the one whose GPT holds `boot_a` and `boot_b`) | `python3 tools/extract-boot-partitions.py --input <sfdisk json> --profile boot-profile.json --output boot-partitions.json` (§4.8; INSTALL step 8a reads the table in the maintenance image) |
 | stock base DTB, DTBO entry | `vendor_boot_a`, `dtbo_a` | manual steps (§3.3) |
@@ -334,7 +311,7 @@ properties, ABL marks the slot unbootable.
 
 ### 4.4 Root and data filesystems (host)
 
-Build the pristine Desktop TAR as in [build.zh-CN.md](build.zh-CN.md) (`prepare-ubuntu-desktop.sh`,
+Build the pristine Desktop TAR as in [BUILD.md](BUILD.md) (`prepare-ubuntu-desktop.sh`,
 `sqfs2tar`, `merge-desktop-tars.py`), then:
 
 ```bash
@@ -648,26 +625,31 @@ fastboot -s <SERIAL> reboot
 - For a reboot with nobody at the tablet, developer mode must be enabled (§7.1).
 
 ```bash
-scp out/kernel-deb-<N>/linux-image-7.2.6-piano<N>_7.2.6-<N>.1_arm64.deb <USER>@192.168.88.2:
+KERNEL_DEB_DIR=out/kernel-deb-<N>
+KERNEL_DEB=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["deb"])' "$KERNEL_DEB_DIR/manifest.json")
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])'
+scp "$KERNEL_DEB_DIR/$KERNEL_DEB" <USER>@192.168.88.2:piano-kernel.deb
 ```
 
 ### 5.2 Install (on the tablet)
 
-Run dpkg as a transient unit so that a dropped SSH session does not stop it. It takes about 10 to 13
-minutes (dracut about 8, the kdump-tools initrd about 4).
+Run dpkg as a transient unit so that a dropped SSH session does not stop it. Older images took
+about 10 to 13 minutes. Current release images omit kdump-tools; dracut duration varies.
 
 ```bash
+KERNEL_PACKAGE=$(dpkg-deb -f "$HOME/piano-kernel.deb" Package)
+KERNEL_RELEASE=${KERNEL_PACKAGE#linux-image-}
 sudo systemd-run --unit=piano-kernel-update --setenv=DEBIAN_FRONTEND=noninteractive \
-  dpkg -i /home/<USER>/linux-image-7.2.6-piano<N>_7.2.6-<N>.1_arm64.deb
+  dpkg -i "$HOME/piano-kernel.deb"
 journalctl -f -u piano-kernel-update
-# expect "Piano boot image set prepared for 7.2.6-piano<N>", then either
+# expect "Piano boot image set prepared for <release>", then either
 #   "Slot A now holds store/ubuntu"                                (slot held Ubuntu: rewritten in place)
 #   "Slot A holds Android; the new Ubuntu set stays in the store"  (slot held Android: "result": "skipped")
 # and finally "piano-kernel-update.service: Deactivated successfully."
-dpkg -l linux-image-7.2.6-piano<N> | tail -n 1    # expect "ii"
+dpkg -l "$KERNEL_PACKAGE" | tail -n 1    # expect "ii"
 sudo dpkg --audit                                 # expect no output
 sudo python3 -c 'import json; print(json.load(open("/var/lib/piano/switch/ubuntu/manifest.json"))["kernel_release"])'
-# expect "7.2.6-piano<N>"
+# expect "<release>"
 sudo piano-boot-switch verify                     # expect exit status 0
 ```
 
@@ -683,7 +665,7 @@ running Ubuntu (§5.4), from Android with the KernelSU module (§6.2), or from t
 
 ```bash
 sudo systemctl reboot
-uname -r                              # expect "7.2.6-piano<N>"
+uname -r                              # expect "<release>"
 ls -d /lib/modules/$(uname -r)        # expect the directory
 sudo piano-boot-switch status         # expect "occupant": "ubuntu"
 sudo piano-slot-success --check       # expect "state": "already-successful"
@@ -701,7 +683,7 @@ Recommended for kernels with boot-relevant changes; this sequence is device-veri
 2. Copy `/boot/vmlinuz-<new>`, `/boot/initrd.img-<new>` (the initrd generated on the tablet) and
    `/usr/lib/linux-image-<new>/piano-boot.dtb` to the host and build a debug set from them (§3.6 with
    `--debug --debug-timeout 900`).
-3. `fastboot boot` its `boot-ram-check.img` and accept it with the debug profile (§8.3).
+3. `fastboot boot` its `boot-ram-check.img` and record the affected hardware checks; §8.3 is historical.
 4. In that session run `piano-boot-switch to-ubuntu`, then `systemctl reboot` for the cold boot, or
    `piano-reboot-bootloader` first to read the slot attributes in Fastboot.
 
@@ -756,24 +738,18 @@ sudo apt-get purge linux-image-<old release>    # removes the leftover depmod in
   save work first. The CLI respects them unless `--force` is given with `--reboot`.
   See [reboot failures and the next boot's OS](FLASHING.md#from-ubuntu-piano-boot-switch).
 
-### 6.2 From Android: KernelSU module (not yet verified on the device)
+### 6.2 From Android: KernelSU module
 
-Needs KernelSU-Next with shell root, an `android/` set equal to slot A, and a clean Ubuntu shutdown
-(the module refuses an ext4 journal that needs recovery). Details:
-[device/android/piano-switch-ksu](../device/android/piano-switch-ksu/README.md).
+Installation, `--check` and switching results are recorded in the
+[module documentation](../device/android/piano-switch-ksu/README.md).
+Follow [FLASHING.md](FLASHING.md#from-android-kernelsu-module) to install and run it.
+A local build takes its version from module metadata:
 
 ```bash
-sh device/android/piano-switch-ksu/build.sh "$PWD/out/ksu"    # expect out/ksu/piano-switch-ksu-v0.1.0.zip and .sha256
-adb -s <SERIAL> push out/ksu/piano-switch-ksu-v0.1.0.zip /data/local/tmp/
-adb -s <SERIAL> shell su -c '/data/adb/ksud module install /data/local/tmp/piano-switch-ksu-v0.1.0.zip'
-adb -s <SERIAL> reboot
-adb -s <SERIAL> shell su -c 'sh /data/adb/modules/piano-switch/piano-switch.sh --check'
-# expect "CHECK OK: slot A holds the android set and the ubuntu set is ready; nothing written"
-adb -s <SERIAL> shell su -c 'ksud module action piano-switch'   # writes slot A and reboots
+sh device/android/piano-switch-ksu/build.sh "$PWD/out/ksu"
+sed -n 's/^version=//p' device/android/piano-switch-ksu/module/module.prop
+# creates out/ksu/piano-switch-ksu-<version>.zip and .sha256
 ```
-
-Exit status 0: switched or nothing to do; 1: refused before any write; 2: write failed, Android set
-restored; 3: write and restore failed, do not reboot and restore the Android set with Fastboot.
 
 ### 6.3 From the host: `piano-switch.py`
 
@@ -930,22 +906,19 @@ script -q -c 'telnet 192.168.88.2 2323' private/<run>/console.log
 
 ## 8. Acceptance
 
-### 8.1 Rules
+### 8.1 Current acceptance
 
-- A process being active (`gdm`, `gnome-shell`), `/dev/fb0` content or a framebuffer screenshot is
-  not a display pass. Hardware criteria (DPU frame counters, interrupt status, scanout memory
-  samples) and a person's visual confirmation are recorded separately and do not replace each other.
-- The same software can boot into a fast or a slow state; a check at a single moment does not reveal
-  the slow state. Every acceptance boot checks the time and bandwidth budgets below.
-- Accept a new kernel or image set first in a debug RAM boot of exactly its kernel, initrd and DTB
-  (profile `debug`, §8.3), then on the release cold boot over developer mode (profile `cold`, §8.4).
-- `tools/piano_boot_acceptance.py` holds the criteria and budgets as data and evaluates saved
-  captures. Each criterion is PASS, FAIL or UNAVAILABLE with its measured value; missing input is
-  never FAIL. The verdict is PASS, FAIL or INCOMPLETE (exit status 0, 1 or 3).
+Use `piano-cold-boot-accept.py` in §8.4 for current release cold boots. Record its criteria,
+measurements and missing evidence, plus visual confirmation, physical input and charging results
+under [CONTRIBUTING.md](../CONTRIBUTING.md#evidence).
+Sections 8.2, 8.3 and 8.5 preserve early firmware-scanout diagnostics; they do not establish a pass
+for a current release using native display.
 
-### 8.2 Budgets
+### 8.2 Historical simpledrm budgets
 
-`python3 tools/piano_boot_acceptance.py criteria` prints the current list:
+These are the early firmware-scanout criteria, including fixed 100–140 Hz and greeter colour
+assumptions. They are not current display acceptance limits. To replay that historical profile,
+`python3 tools/piano_boot_acceptance.py criteria` prints its list:
 
 | Criterion | Budget |
 |---|---|
@@ -964,7 +937,7 @@ script -q -c 'telnet 192.168.88.2 2323' private/<run>/console.log
 | `debug` only | slot attributes unchanged between Fastboot readings before and after |
 | `cold` only | store manifest release equals `uname -r`; `piano-boot-switch status` occupant `ubuntu` |
 
-### 8.3 Debug validation boot (profile `debug`)
+### 8.3 Historical debug validation (profile `debug`)
 
 Evidence directory layout: `initrd-*.txt` (first initrd console), `root-*.txt` (root transcripts,
 name order = time order), optional `kmsg*.txt` / `journal*.txt`, `getvar-before.txt` and
@@ -1007,18 +980,31 @@ The scanout criterion needs the DPU scanout probe, which is maintained outside t
 the verdict at best INCOMPLETE. Record the manual frame counter check (§8.5) instead, as a separate
 hardware result.
 
-### 8.4 Release cold boot (profile `cold`)
+### 8.4 Release cold boot
+
+Enable developer mode (§7.1), cold-boot the target release, then run this on the host.
+Read the expected release explicitly from the release lock instead of using the tool's historical
+default. The command reads one sudo-password line from stdin; the prompt below hides input:
 
 ```bash
-python3 tools/piano_boot_acceptance.py live --user <USER> --sudo --profile cold --release <release> --save private/<run>
-# expect one PASS line per criterion, private/<run>/verdict-*.json and exit status 0
+KERNEL_RELEASE=$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])')
+read -r -s -p 'Tablet sudo password: ' PIANO_TEST_PASSWORD; printf '\n'
+printf '%s\n' "$PIANO_TEST_PASSWORD" | python3 tools/piano-cold-boot-accept.py run \
+  --serial <SERIAL> --user <USER> --kernel-release "$KERNEL_RELEASE" --out private/<run>
+unset PIANO_TEST_PASSWORD
+# writes capture-early.txt, capture-late.txt and verdict.json; exit 0 means a complete pass
 ```
 
-`live` checks the link with `piano-devmode-ssh.py --check`, runs the read once and evaluates it.
-With `--sudo` the password typed there is the first input line of `sudo -S`; a wrong password ends
-the read.
+The tool checks two captures from the same boot, the later one at actual uptime >= 200 seconds.
+Missing evidence is UNAVAILABLE and does not pass; results do not replace visual, physical-input
+or charging tests. Replay saved evidence without connecting to a device:
 
-### 8.5 Manual frame counter check (as root on the tablet)
+```bash
+python3 tools/piano-cold-boot-accept.py judge private/<run>/capture-early.txt \
+  private/<run>/capture-late.txt --kernel-release "$KERNEL_RELEASE"
+```
+
+### 8.5 Historical firmware frame counters (as root on the tablet)
 
 ```bash
 bb=/usr/libexec/piano/busybox
@@ -1035,8 +1021,8 @@ image content.
 ## 9. Evidence and documentation
 
 Follow [CONTRIBUTING.md](../CONTRIBUTING.md#commits-and-attribution) for attribution,
-`Fixes:` / `Link:` / `Reported-by:` and human attestations; assistants must not add anyone's
-`Signed-off-by:` or `Tested-by:`. Record results using its
+`Fixes:` / `Link:` / `Reported-by:` and the restrictions on assistants adding human attestations.
+Record results using its
 [evidence requirements](../CONTRIBUTING.md#evidence).
 Public hardware status lives in the [README support matrix](../README.md#hardware-support)
 and [STATUS.md](STATUS.md).

@@ -14,16 +14,8 @@ Every release uses this installation procedure. Existing installations should fo
   `OS3.0.303.0.WPYCNXM` only.
 - **The bootloader must be unlocked** through Xiaomi's official process.
 - **Back up first** ([step 2](#2-back-up)). Your stock slot A images are your way back to Android.
-- **No charging under Linux.** Charge in Android and leave Android with at least 40 %.
-- **Never flash `vbmeta`, `dtbo`, any `_b` partition, `persist` or other calibration, modem or
-  firmware partitions, and never run `fastboot --set-active=b`.** Slot B on the test unit holds an
-  older stock chain that does not boot Android.
-- **Keep the tablet attended.** Power + Volume Down enters Fastboot from any state; release images
-  have no debug console.
-- **Put the serial on every command** (`adb -s <SERIAL>`, `fastboot -s <SERIAL>`,
-  `piano-switch.py --serial <SERIAL>`) and run only one tool against the tablet at a time.
-- **On a failure, stop.** Do not repeat a write after one failed status query, do not re-flash a
-  partition that was written successfully, and do not interrupt a write that is still running.
+- Follow [device-operation boundaries](FLASHING.md#never-write) for battery checks, device
+  selection, write restrictions and failure handling. Current charging support is in [STATUS.md](STATUS.md).
 
 Steps that use standard commands because no project tool exists yet are marked *manual*.
 

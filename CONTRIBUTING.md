@@ -6,12 +6,14 @@ Send integration, device userspace, packaging and documentation issues and pull 
 [xiaomipad-8pro-mainline](https://github.com/yzddmr6/xiaomipad-8pro-mainline), targeting `main`.
 Send kernel drivers, DTS and configuration to
 [linux-sm8750-piano](https://github.com/yzddmr6/linux-sm8750-piano), targeting `piano/dev`.
-For a release-branch change, agree on the target in an issue first. Follow the execution boundaries
-in [AGENTS.md](AGENTS.md).
+Follow the execution boundaries in [AGENTS.md](AGENTS.md).
 
-Open an issue before changing release inputs or policy. The allocation of ABI numbers, kernel
-pins and release notes belongs to maintainers preparing a release; ordinary pull requests leave
-these files unchanged. See [release preparation](docs/RELEASE.md#release-preparation-maintainers).
+Open an issue before proposing changes to release-related files or policy. Maintainers allocate ABI
+numbers when packaging any installable kernel, including candidates; ordinary PRs do not reserve
+numbers or edit `kernel/abi.json` or release locks. See
+[installable kernel packaging](docs/RELEASE.md#installable-kernel-packaging-maintainers).
+Maintainers prepare release notes through
+[release preparation](docs/RELEASE.md#release-preparation-maintainers).
 Update English and Chinese counterparts together.
 
 ## Commits and attribution

@@ -14,34 +14,12 @@
 - 状态用语：*已在测试机上验证*；*尚未在设备上验证*；*尚不可用*（没有相应工具）；
   *手工步骤*（使用标准命令，尚无项目工具）。
 
-## 1. 范围与安全规则
+## 1. 范围与操作边界
 
-1. **每条设备命令都绑定序列号：** `adb -s <SERIAL>`、`fastboot -s <SERIAL>`、
-   `tools/piano-switch.py --serial <SERIAL>`；连接多台平板时 `tools/piano-devmode-ssh.py --serial <SERIAL>`。
-   不操作未经识别的设备。
-2. **同一时刻只有一个操作者。** 执行设备命令前确认没有其他会话在操作这台平板；启动、写入和采集不得重叠。
-   ```bash
-   pgrep -af 'fastboot|adb'      # 预期：没有其他会话的 fastboot 或 adb 客户端（adb server 为共享进程）
-   ```
-3. **离开 Android 前电量不低于 40 %**，以新读数为准。Linux 下不充电，接 USB 也一样。充电标志或充电时长不是读数。
-   ```bash
-   adb -s <SERIAL> shell dumpsys battery | grep level      # 预期 "level: 40" 或更高
-   fastboot -s <SERIAL> getvar battery-soc-ok              # 预期 "battery-soc-ok: yes"
-   ```
-4. **写入范围。** 切换只写 `init_boot_a`、`vendor_boot_a` 和 `boot_a`。安装另写 LUN 0 的 GPT、`userdata`、
-   `metadata`、`linux_rootfs` 和 `linux_data`。不得写 `vbmeta`、`dtbo`、任何 `_b` 分区、`persist`
-   及其他标定、基带或固件分区，不得执行 `fastboot --set-active=b`：测试机的 B 槽是无法启动 Android 的旧版原厂链。
-5. **保留退路。**
-   - 任何状态下按住电源 + 音量下都可进入 Fastboot。
-   - 在主机上保存 Android 镜像组和当前 Ubuntu 镜像组的副本（§6.6）。
-   - 新镜像先以有时限的调试 RAM 启动（§7.2）运行一次，再写入 A 槽。
-   - 无人在平板旁时冷启动正式镜像组之前，先开启开发者模式（§7.1）：否则正式镜像不提供任何 USB 功能。
-6. **任何分区写入前先备份**（§4.2）。`sdX` 盘符在不同启动之间会变化，备份文件名不是设备名：
-   按 UFS 控制器、LUN、GPT GUID、label 和几何选择目标。
-7. **出现失败时**停下，定位最早失败的层（传输、设备提交、启动、握手）。一次状态查询失败后不重复破坏性命令；
-   已成功写入的文件系统不重刷；不中断仍在进行的写入，另行监控其进度。
-8. **不得提交**到任一仓库：序列号、蓝牙与 Wi-Fi 地址、触控标定、启动配置（boot profile）、`/etc/piano/*`、
-   签名密钥、备份、仓库内 `firmware/` 以外的原厂文件、原始日志与采集数据。它们放在被忽略的 `private/` 目录或仓库之外。
+执行边界与隐私要求见 [AGENTS.md](../AGENTS.md)。设备写入范围、电量检查、设备绑定及恢复要求
+统一见 [FLASHING.zh-CN.md](FLASHING.zh-CN.md#绝不写入)，安装备份见
+[INSTALL.zh-CN.md](INSTALL.zh-CN.md#2-备份)。当前硬件行为与充电限制以 [STATUS.md](STATUS.md) 为准。
+以下按已选定的操作给出命令；无人值守的冷启动需要预先准备 §7.1 的开发者连接。
 
 ## 2. 仓库与版本锁定
 
@@ -59,10 +37,13 @@
 ```bash
 git rev-parse HEAD                                          # 集成提交，记录下来
 git clone --branch piano/dev https://github.com/yzddmr6/linux-sm8750-piano ../linux
+git -C ../linux checkout "$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])')"
 python3 -c 'import json; print(json.load(open("kernel/source.json"))["commit"])'
 git -C ../linux rev-parse HEAD                              # 预期与上一行相同
 git -C ../linux status --porcelain --untracked-files=no     # 预期无输出
-python3 tools/kernel_tag.py ../linux                        # 预期 "v7.2.6"（Makefile 版本对应的上游 tag）
+python3 tools/kernel_tag.py ../linux
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["upstream_tag"])'
+# 预期两行上游 tag 一致
 sh tools/fetch-aosp-mkbootimg.sh                            # 固定版本检出到 tools/local/aosp-mkbootimg
 sh tools/fetch-aosp-avb.sh                                # 校验固定提交、SHA-256 和版本
 sh tools/fetch-busybox-arm64.sh                             # 预期 ".../usr/bin/busybox: OK"
@@ -87,7 +68,7 @@ python3 -S tools/stage-firmware.py --firmware-dir <stock modem_a image/ director
 
 ## 3. 构建流程
 
-顺序：内核（§3.1）→ 发布记录（§3.2）→ 启动 DTB（§3.3）→ 内核包（§3.4）→ 设备包与固件包（§3.5）→
+顺序：内核（§3.1）→ 可安装构建记录（§3.2）→ 启动 DTB（§3.3）→ 内核包（§3.4）→ 设备包与固件包（§3.5）→
 根文件系统（§4.4）→ 启动镜像组（§3.6）。主机工具见 [build.zh-CN.md](build.zh-CN.md)；另需 `dpkg-deb`、
 `python3-debian`、`device-tree-compiler`（`fdtget`/`fdtput`）、`python3-libfdt`、AOSP libufdt 的
 `ufdt_apply_overlay`、`m4` 和 `alsatplg`。
@@ -103,9 +84,9 @@ python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_rel
 # 预期两行一致
 ```
 
-### 3.2 发布记录
+### 3.2 可安装构建记录
 
-ABI、内核 pin 和发布说明的维护流程只在 [RELEASE.md](RELEASE.md#release-preparation-maintainers)
+所有可安装打包构建（含候选）的 ABI 与内核 pin 维护流程只在 [RELEASE.md](RELEASE.md#installable-kernel-packaging-maintainers)
 定义。复现发布版本不改锁文件；本地开发见[构建指南](build.zh-CN.md#本地内核开发)。
 
 ### 3.3 启动 DTB
@@ -130,7 +111,7 @@ python3 tools/prepare-boot-dtb.py \
 ```bash
 python3 tools/build-kernel-deb.py --kernel-source ../linux --kernel-out out/kernel-release \
   --boot-dtb out/boot-dtb/piano-boot.dtb --maintainer 'Name <email>' --output out/kernel-deb-<N>
-# 预期 JSON："package": "linux-image-7.2.6-piano<N>"、"version": "7.2.6-<N>.1"、"deb"、"deb_sha256"
+# 预期 JSON："package": "linux-image-<release>"、"version": "<package-version>"、"deb"、"deb_sha256"
 ```
 
 包内有 `/boot/vmlinuz-<release>`（未压缩 Image）、`System.map`、`config`，`/usr/lib/linux-image-<release>/`
@@ -161,6 +142,8 @@ python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYM
 mkdir -p out/audio
 m4 -I <audioreach-topology checkout> device/audio/Piano-Capture-Diag.m4 > out/audio/Piano-Capture-Diag.conf
 alsatplg -c out/audio/Piano-Capture-Diag.conf -o out/audio/Piano-Capture-Diag-tplg.bin
+m4 -I device/audio -I <audioreach-topology checkout> device/audio/Xiaomi-Pad-8-Pro.m4 > out/audio/Xiaomi-Pad-8-Pro.conf
+alsatplg -c out/audio/Xiaomi-Pad-8-Pro.conf -o out/audio/Xiaomi-Pad-8-Pro-tplg.bin
 python3 tools/build-firmware-deb.py --topology out/audio/Piano-Capture-Diag-tplg.bin \
   --card-topology out/audio/Xiaomi-Pad-8-Pro-tplg.bin \
   --maintainer 'Name <email>' --output out/firmware-deb
@@ -224,7 +207,7 @@ Mesa 构建 manifest；镜像组的 `manifest.json` 与 `SHA256SUMS`；initrd �
 
 ## 4. 全新安装（手工步骤）
 
-分区与根文件系统安装器尚不可用。以下步骤用标准命令复现测试机（512 GB UFS）的安装，256 GB 对应值见 §4.5。使用发布目录时，发布的根文件系统镜像与启动镜像组代替 §4.4 和 §3.6 的镜像组，改动见 [RELEASE.md](RELEASE.md#installing-the-release)。
+分区与根文件系统安装器尚不可用。以下步骤用标准命令复现测试机（512 GB UFS）的安装，256 GB 对应值见 §4.5。使用发布目录时，发布的根文件系统镜像与启动镜像组代替 §4.4 和 §3.6 的镜像组，改动见 [INSTALL.zh-CN.md](INSTALL.zh-CN.md)。
 
 ### 4.1 前提
 
@@ -272,7 +255,7 @@ adb -s <SERIAL> exec-out su -c 'dd if=/dev/block/sdX bs=4096 skip=<blocks-34> 2>
 | `bluetooth-address` | 原厂 Android | `adb -s <SERIAL> shell settings get secure bluetooth_address > bluetooth-address`（一行 `XX:XX:XX:XX:XX:XX`；`piano-boot-update` 必需） |
 | `wlan-address`（可选） | 原厂 `persist` 分区中的 `wlan/wlan_mac.bin` | 手工步骤：一行单播 `XX:XX:XX:XX:XX:XX`；存在时 `piano-boot-update` 使用它 |
 | `thp-calibration.json` | 原厂 ODM 分区中的 `piano_nova_csot_thp_config.ini` 或 `piano_nova_boe_thp_config.ini`，取本机原厂驱动加载的那份（原厂 Android 中 `dmesg \| grep config_file_name`；测试机为 CSOT 面板）。内核识别屏型并加载对应触控固件；`piano-thp-live` 按内核 `panel_vendor` 选方向，标定属于另一种屏时记一行 `THP calibration error` | `python3 tools/extract-thp-calibration.py --input <ini> --output thp-calibration.json` |
-| `boot-signing.pem` | 所有者新生成的密钥 | `openssl genrsa -out boot-signing.pem 4096` |
+| `boot-signing.pem` | 本地新生成的签名密钥 | `openssl genrsa -out boot-signing.pem 4096` |
 | `boot-profile.json` | 原厂 `boot_a`、`init_boot_a`、`vendor_boot_a` | 手工步骤，见下 |
 | `boot-partitions.json` | 启动 LUN（LUN 4，即 GPT 含 `boot_a` 与 `boot_b` 的 LUN）的 `sfdisk --json` | `python3 tools/extract-boot-partitions.py --input <sfdisk json> --profile boot-profile.json --output boot-partitions.json`（§4.8；INSTALL 第 8a 步在维护镜像中读取分区表） |
 | 原厂基础 DTB、DTBO 条目 | `vendor_boot_a`、`dtbo_a` | 手工步骤（§3.3） |
@@ -599,25 +582,30 @@ fastboot -s <SERIAL> reboot
 - 无人在平板旁时重启，须已开启开发者模式（§7.1）。
 
 ```bash
-scp out/kernel-deb-<N>/linux-image-7.2.6-piano<N>_7.2.6-<N>.1_arm64.deb <USER>@192.168.88.2:
+KERNEL_DEB_DIR=out/kernel-deb-<N>
+KERNEL_DEB=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["deb"])' "$KERNEL_DEB_DIR/manifest.json")
+python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])'
+scp "$KERNEL_DEB_DIR/$KERNEL_DEB" <USER>@192.168.88.2:piano-kernel.deb
 ```
 
 ### 5.2 安装（平板上）
 
-用临时单元运行 dpkg，SSH 断开时它不会被中止。耗时约 10 到 13 分钟（dracut 约 8 分钟，kdump-tools 的 initrd 约 4 分钟）。
+用临时单元运行 dpkg，SSH 断开时它不会被中止。旧镜像曾耗时约 10 到 13 分钟。当前发布镜像不含 kdump-tools，dracut 耗时依环境而异。
 
 ```bash
+KERNEL_PACKAGE=$(dpkg-deb -f "$HOME/piano-kernel.deb" Package)
+KERNEL_RELEASE=${KERNEL_PACKAGE#linux-image-}
 sudo systemd-run --unit=piano-kernel-update --setenv=DEBIAN_FRONTEND=noninteractive \
-  dpkg -i /home/<USER>/linux-image-7.2.6-piano<N>_7.2.6-<N>.1_arm64.deb
+  dpkg -i "$HOME/piano-kernel.deb"
 journalctl -f -u piano-kernel-update
-# 预期 "Piano boot image set prepared for 7.2.6-piano<N>"，随后为以下之一：
+# 预期 "Piano boot image set prepared for <release>"，随后为以下之一：
 #   "Slot A now holds store/ubuntu"                                （槽内为 Ubuntu：原位重写）
 #   "Slot A holds Android; the new Ubuntu set stays in the store"  （槽内为 Android："result": "skipped"）
 # 最后 "piano-kernel-update.service: Deactivated successfully."
-dpkg -l linux-image-7.2.6-piano<N> | tail -n 1    # 预期 "ii"
+dpkg -l "$KERNEL_PACKAGE" | tail -n 1    # 预期 "ii"
 sudo dpkg --audit                                 # 预期无输出
 sudo python3 -c 'import json; print(json.load(open("/var/lib/piano/switch/ubuntu/manifest.json"))["kernel_release"])'
-# 预期 "7.2.6-piano<N>"
+# 预期 "<release>"
 sudo piano-boot-switch verify                     # 预期退出码 0
 ```
 
@@ -630,7 +618,7 @@ A 槽为 Android 时，之后用 `sudo piano-boot-switch to-ubuntu` 写入新组
 
 ```bash
 sudo systemctl reboot
-uname -r                              # 预期 "7.2.6-piano<N>"
+uname -r                              # 预期 "<release>"
 ls -d /lib/modules/$(uname -r)        # 预期该目录存在
 sudo piano-boot-switch status         # 预期 "occupant": "ubuntu"
 sudo piano-slot-success --check       # 预期 "state": "already-successful"
@@ -646,7 +634,7 @@ sudo piano-slot-success --check       # 预期 "state": "already-successful"
 2. 把 `/boot/vmlinuz-<new>`、`/boot/initrd.img-<new>`（平板上生成的 initrd）和
    `/usr/lib/linux-image-<new>/piano-boot.dtb` 复制到主机，据此构建调试镜像组（§3.6，带
    `--debug --debug-timeout 900`）。
-3. `fastboot boot` 其 `boot-ram-check.img`，按 debug 配置验收（§8.3）。
+3. `fastboot boot` 其 `boot-ram-check.img`，记录受影响硬件的检查结果；§8.3 是历史方法。
 4. 在该会话中运行 `piano-boot-switch to-ubuntu`，再 `systemctl reboot` 冷启动；或先用
    `piano-reboot-bootloader` 进入 Fastboot 读取槽属性。
 
@@ -691,23 +679,17 @@ sudo apt-get purge linux-image-<old release>    # 删除残留的 depmod 索引�
   当前桌面入口显式忽略重启 inhibitor，请先保存工作；CLI 默认尊重 inhibitor，
   仅 `--reboot --force` 忽略。重启失败与下一次启动目标见[切换说明](FLASHING.zh-CN.md#在-ubuntu-中piano-boot-switch)。
 
-### 6.2 在 Android 中：KernelSU 模块（尚未在设备上验证）
+### 6.2 在 Android 中：KernelSU 模块
 
-需要 shell 已获 root 的 KernelSU-Next、与 A 槽一致的 `android/` 组，以及 Ubuntu 正常关机（ext4 日志需要恢复时
-模块拒绝）。详见 [device/android/piano-switch-ksu](../device/android/piano-switch-ksu/README.md)。
+安装、`--check` 和切换的设备验证记录见[模块说明](../device/android/piano-switch-ksu/README.md)。
+安装与执行步骤统一见 [FLASHING.zh-CN.md](FLASHING.zh-CN.md#在-android-中kernelsu-模块)。
+本地构建使用模块元数据中的版本：
 
 ```bash
-sh device/android/piano-switch-ksu/build.sh "$PWD/out/ksu"    # 预期 out/ksu/piano-switch-ksu-v0.1.0.zip 与 .sha256
-adb -s <SERIAL> push out/ksu/piano-switch-ksu-v0.1.0.zip /data/local/tmp/
-adb -s <SERIAL> shell su -c '/data/adb/ksud module install /data/local/tmp/piano-switch-ksu-v0.1.0.zip'
-adb -s <SERIAL> reboot
-adb -s <SERIAL> shell su -c 'sh /data/adb/modules/piano-switch/piano-switch.sh --check'
-# 预期 "CHECK OK: slot A holds the android set and the ubuntu set is ready; nothing written"
-adb -s <SERIAL> shell su -c 'ksud module action piano-switch'   # 写入 A 槽并重启
+sh device/android/piano-switch-ksu/build.sh "$PWD/out/ksu"
+sed -n 's/^version=//p' device/android/piano-switch-ksu/module/module.prop
+# 生成 out/ksu/piano-switch-ksu-<version>.zip 和 .sha256
 ```
-
-退出码 0：已切换或无需操作；1：写入前拒绝；2：写入失败，已恢复 Android 组；3：写入和恢复都失败，不要重启，
-用 Fastboot 恢复 Android 组。
 
 ### 6.3 从主机：`piano-switch.py`
 
@@ -845,19 +827,16 @@ script -q -c 'telnet 192.168.88.2 2323' private/<run>/console.log
 
 ## 8. 验收
 
-### 8.1 规则
+### 8.1 当前验收
 
-- 进程处于活动状态（`gdm`、`gnome-shell`）、`/dev/fb0` 内容或帧缓冲截图都不是显示通过。硬件判据（DPU 帧计数、
-  中断状态、扫描输出内存采样）与人工目视分别记录，不能互相替代。
-- 同一软件可能启动到快态或慢态；单一时刻的检查发现不了慢态。每次验收启动都按下列时间与带宽预算检查。
-- 新内核或镜像组先在与其内核、initrd 和 DTB 完全相同的调试 RAM 启动中验收（`debug` 配置，§8.3），再经开发者模式
-  验收正式冷启动（`cold` 配置，§8.4）。
-- `tools/piano_boot_acceptance.py` 以数据形式保存判据与预算，并对保存的采集结果求值。每项判据为 PASS、FAIL 或
-  UNAVAILABLE 并附实测值；缺少输入从不判 FAIL。总结论为 PASS、FAIL 或 INCOMPLETE（退出码 0、1 或 3）。
+当前发布冷启动使用 §8.4 的 `piano-cold-boot-accept.py`。记录工具的判据、实测值与缺失项，
+并按 [CONTRIBUTING.md](../CONTRIBUTING.md#evidence) 另记人工目视、实际输入、充电等硬件结果。
+§8.2、§8.3 和 §8.5 保留早期固件扫描输出诊断的方法，不能据此判定当前原生显示的发布版本通过。
 
-### 8.2 预算
+### 8.2 历史 simpledrm 预算
 
-`python3 tools/piano_boot_acceptance.py criteria` 打印当前清单：
+这是早期固件扫描输出的判据，包含固定 100–140 Hz 和登录界面颜色假设，不是当前显示验收限制。
+重放该历史配置时，`python3 tools/piano_boot_acceptance.py criteria` 打印其清单：
 
 | 判据 | 预算 |
 |---|---|
@@ -876,7 +855,7 @@ script -q -c 'telnet 192.168.88.2 2323' private/<run>/console.log
 | 仅 `debug` | 前后两次 Fastboot 读数中的槽属性不变 |
 | 仅 `cold` | 存储 manifest 的 release 等于 `uname -r`；`piano-boot-switch status` 的 occupant 为 `ubuntu` |
 
-### 8.3 调试验证启动（`debug` 配置）
+### 8.3 历史调试验证（`debug` 配置）
 
 证据目录布局：`initrd-*.txt`（首个 initrd 控制台）、`root-*.txt`（根阶段记录，文件名顺序即时间顺序）、
 可选的 `kmsg*.txt` / `journal*.txt`、`getvar-before.txt` 和 `getvar-after.txt`。
@@ -916,17 +895,30 @@ python3 tools/piano_boot_acceptance.py evaluate --dir $R --release <release> --p
 扫描输出判据需要 DPU 扫描输出探针，该探针在本仓库之外维护（`live --scanout-probe`、`script --scanout-probe`）；
 没有它时该判据为 UNAVAILABLE，总结论最多为 INCOMPLETE。此时改为记录手工帧计数检查（§8.5），作为单独的硬件结果。
 
-### 8.4 正式冷启动（`cold` 配置）
+### 8.4 正式冷启动
+
+先按 §7.1 开启开发者模式并从目标发布镜像冷启动，再在主机运行。预期内核 release 显式从发布锁读取，
+不要使用工具的历史默认值。命令从标准输入读取一行 sudo 密码；输入不会回显：
 
 ```bash
-python3 tools/piano_boot_acceptance.py live --user <USER> --sudo --profile cold --release <release> --save private/<run>
-# 预期每项判据一行 PASS，生成 private/<run>/verdict-*.json，退出码 0
+KERNEL_RELEASE=$(python3 -c 'import json; print(json.load(open("kernel/source.json"))["kernel_release"])')
+read -r -s -p 'Tablet sudo password: ' PIANO_TEST_PASSWORD; printf '\n'
+printf '%s\n' "$PIANO_TEST_PASSWORD" | python3 tools/piano-cold-boot-accept.py run \
+  --serial <SERIAL> --user <USER> --kernel-release "$KERNEL_RELEASE" --out private/<run>
+unset PIANO_TEST_PASSWORD
+# 输出 capture-early.txt、capture-late.txt 和 verdict.json；完整通过时退出码为 0
 ```
 
-`live` 先用 `piano-devmode-ssh.py --check` 检查链路，执行一次读取并求值。带 `--sudo` 时，在此输入的密码作为
-`sudo -S` 的第一行输入；密码错误会终止读取。
+工具检查同一次启动的两次采集，晚期采集时间不早于实际 uptime 200 秒。
+缺少证据记为 UNAVAILABLE，不算通过；结果不代替目视、真实输入或充电测试。
+不连接设备重放已保存的结果：
 
-### 8.5 手工帧计数检查（平板上以 root 执行）
+```bash
+python3 tools/piano-cold-boot-accept.py judge private/<run>/capture-early.txt \
+  private/<run>/capture-late.txt --kernel-release "$KERNEL_RELEASE"
+```
+
+### 8.5 历史固件帧计数（平板上以 root 执行）
 
 ```bash
 bb=/usr/libexec/piano/busybox
@@ -941,6 +933,6 @@ echo "INTF1 $a $($bb devmem 0x0ae360ac 32)  INTF2 $b $($bb devmem 0x0ae370ac 32)
 ## 9. 证据与文档
 
 提交归属、`Fixes:` / `Link:` / `Reported-by:` 和人工签署要求见
-[CONTRIBUTING.md](../CONTRIBUTING.md#commits-and-attribution)；代理不得代任何人添加
-`Signed-off-by:` 或 `Tested-by:`。按同一文件的[证据要求](../CONTRIBUTING.md#evidence)记录结果。
+[CONTRIBUTING.md](../CONTRIBUTING.md#commits-and-attribution)，其中也规定代理代签的限制。
+按同一文件的[证据要求](../CONTRIBUTING.md#evidence)记录结果。
 公开硬件状态维护在 [README 支持矩阵](../README.zh-CN.md#硬件支持) 和 [STATUS.md](STATUS.md)。

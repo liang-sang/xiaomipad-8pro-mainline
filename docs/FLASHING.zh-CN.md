@@ -13,7 +13,14 @@ Android 和 Ubuntu 都从 A 槽启动。切换就是把另一个系统的镜像�
 - 其他平板的镜像、标定或地址。
 
 每条命令都绑定到你的平板（`adb -s <SERIAL>`、`fastboot -s <SERIAL>`、`piano-switch.py --serial <SERIAL>`），
-同一时间只用一个工具操作。离开 Android 时电量至少 40%，Linux 下不能充电。
+同一时间只用一个工具操作。分区操作前确认电量至少 40%；当前充电支持与限制见
+[硬件状态](STATUS.md)，不再沿用早期诊断内核不充电的结论。
+
+写入前按[安装指南](INSTALL.zh-CN.md#2-备份)备份，保留主机上的两套启动镜像。
+安装时保持有人照看；正式镜像没有调试控制台。启动、写入和采集不要与其他会话重叠。
+出现失败时停下并定位最早失败的步骤：不要因一次状态查询失败而重写，不要重刷已经写好的文件系统，
+也不要中断仍在执行的写入。新镜像先按[调试启动流程](AGENT-GUIDE.zh-CN.md#72-调试-ram-启动)检查，
+再写 A 槽；调试镜像不用于日常持久启动。
 
 主机命令使用 [INSTALL.zh-CN.md](INSTALL.zh-CN.md#准备) 中的 REPO、RELEASE 和 WORK 设置：
 REPO 为发布记录提交的集成仓检出目录绝对路径，RELEASE 为解压后的发布目录，WORK 为仓库之外的私有安装工作目录。
@@ -113,12 +120,14 @@ A 槽的 Android root 补丁变化后（例如从 Magisk 换成 KernelSU），�
 ## 在 Android 中：KernelSU 模块
 
 Android 侧切换已在测试机验证。
-发布目录中的 `tools/piano-switch-ksu-v0.2.0.zip` 需要带 shell root 的 KernelSU-Next、与 A 槽一致的已存储
+发布目录中的 `tools/piano-switch-ksu-<version>.zip` 需要带 shell root 的 KernelSU-Next、与 A 槽一致的已存储
 `android/` 镜像组，以及 Ubuntu 正常关机。
 
 ```bash
-adb -s <SERIAL> push "$RELEASE/tools/piano-switch-ksu-v0.2.0.zip" /data/local/tmp/
-adb -s <SERIAL> shell su -c '/data/adb/ksud module install /data/local/tmp/piano-switch-ksu-v0.2.0.zip'
+KSU_VERSION=$(sed -n 's/^version=//p' "$REPO/device/android/piano-switch-ksu/module/module.prop")
+KSU_ZIP="piano-switch-ksu-$KSU_VERSION.zip"
+adb -s <SERIAL> push "$RELEASE/tools/$KSU_ZIP" /data/local/tmp/
+adb -s <SERIAL> shell su -c "/data/adb/ksud module install /data/local/tmp/$KSU_ZIP"
 adb -s <SERIAL> reboot
 adb -s <SERIAL> shell su -c 'sh /data/adb/modules/piano-switch/piano-switch.sh --check'
 # 预期 "CHECK OK: slot A holds the android set and the ubuntu set is ready; nothing written"

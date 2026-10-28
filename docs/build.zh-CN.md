@@ -2,7 +2,7 @@
 
 [English](BUILD.md) | [项目概览](../README.zh-CN.md) | [发布产物](RELEASE.md)
 
-本指南说明如何从固定输入构建发布产物：内核 → 发布记录 → 内核包 → 设备包与固件包 →
+本指南说明如何从固定输入构建发布产物：内核 → 可安装构建记录 → 内核包 → 设备包与固件包 →
 启动镜像组 → 根镜像 → 发布目录。根镜像 chroot 后端需要 root，其余工具以普通用户运行。
 构建工具不访问平板；构建成功不代表硬件验证通过。各阶段预期输出及需记录的身份见
 [代理与操作者指南](AGENT-GUIDE.zh-CN.md) §3。
@@ -38,7 +38,7 @@ sh tools/fetch-busybox-arm64.sh        # 预期 ".../usr/bin/busybox: OK"
 | Ubuntu | 26.04 Desktop ARM64 ISO，SHA-256 `c2afd538d66fdd77377d03f1ed2ac76a34f1c116baecc9a8170d68f833121f57`；[ubuntu/26.04.sources](../ubuntu/26.04.sources)；软件包取自指定日期的[快照](https://snapshot.ubuntu.com/) |
 | 设备用户态 | `device/*/source.json` |
 
-原厂基础 DTB、DTBO 条目、boot profile 和签名密钥由设备所有者提供，不得提交到仓库。
+原厂基础 DTB、DTBO 条目、boot profile 和签名密钥由你提供，隐私边界见 [AGENTS.md](../AGENTS.md)。
 原厂输入须来自自己的平板，采集方法见[安装指南](INSTALL.zh-CN.md)。
 
 ## 1. 内核
@@ -62,10 +62,10 @@ BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash to
 - 打包器要求 `build-result.json` 的片段列表及顺序与 `release_config_fragments` 完全一致，并继续
   校验 ABI 记录中的内核提交和最终 `.config` 哈希；缺少、增加或重排片段的构建均拒绝打包。
 
-## 2. 发布记录
+## 2. 可安装构建记录
 
 复现发布版本时保留 `kernel/source.json` 和 `kernel/abi.json` 原样。
-ABI 分配与 pin 更新见 [RELEASE.md 的维护者流程](RELEASE.md#release-preparation-maintainers)。
+所有可安装打包构建（含候选）的 ABI 分配与 pin 更新见 [RELEASE.md 的维护者打包流程](RELEASE.md#installable-kernel-packaging-maintainers)。
 
 ### 本地内核开发
 
@@ -73,7 +73,25 @@ ABI 分配与 pin 更新见 [RELEASE.md 的维护者流程](RELEASE.md#release-p
 从 `defconfig` 开始，用 `scripts/kconfig/merge_config.sh` 按 `kernel/source.json` 的
 `release_config_fragments` 顺序合并，再按需追加本地片段，运行 `olddefconfig`。
 用 `scripts/config` 将 `CONFIG_LOCALVERSION` 设为独立的开发后缀（如 `-piano-dev`）。
-这种构建用于本地开发，不使用发布打包器；纳入发布时由维护者执行上述登记流程。
+这种构建用于本地开发，不使用发布打包器；打成可安装包（含候选）时，由维护者执行上述登记流程。
+
+```bash
+DEV_SRC=/path/to/your/kernel-checkout
+DEV_OUT="$PWD/out/kernel-local"
+mkdir -p "$DEV_OUT"
+export ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+make -C "$DEV_SRC" O="$DEV_OUT" defconfig
+mapfile -t DEV_FRAGMENTS < <(python3 - "$DEV_SRC" <<'CONFIG_PATHS'
+import json, pathlib, sys
+for name in json.load(open('kernel/source.json'))['release_config_fragments']:
+    print(pathlib.Path(sys.argv[1]) / name)
+CONFIG_PATHS
+)
+"$DEV_SRC/scripts/kconfig/merge_config.sh" -m -O "$DEV_OUT" "$DEV_OUT/.config" "${DEV_FRAGMENTS[@]}"
+"$DEV_SRC/scripts/config" --file "$DEV_OUT/.config" --set-str LOCALVERSION -piano-dev --disable LOCALVERSION_AUTO
+make -C "$DEV_SRC" O="$DEV_OUT" LOCALVERSION= olddefconfig
+make -C "$DEV_SRC" O="$DEV_OUT" LOCALVERSION= -j"$(nproc)" Image dtbs modules
+```
 
 ## 3. 启动 DTB
 
@@ -94,11 +112,12 @@ python3 tools/prepare-boot-dtb.py \
 ```bash
 python3 tools/build-kernel-deb.py --kernel-source ../linux --kernel-out out/kernel-release \
   --boot-dtb out/boot-dtb/piano-boot.dtb --maintainer 'Name <email>' --output out/kernel-deb-<N>
-# 预期 JSON 包含 "package": "linux-image-7.2.6-piano<N>"、"deb" 和 "deb_sha256"
+# 预期 JSON 包含 "package": "linux-image-<release>"、"deb" 和 "deb_sha256"
 ```
 
 包内包含内核、全部 DTB、`piano-boot.dtb` 和匹配模块。维护脚本调用 Ubuntu 的 dracut 钩子及
 piano 启动钩子。同一组输入生成逐字节相同的 deb。
+`<release>` 从 `kernel/source.json` 的 `kernel_release` 读取；deb 文件名与包版本以输出的 `manifest.json` 为准。
 
 ## 5. 设备包与固件包
 
@@ -197,10 +216,10 @@ chroot 约 20 分钟，只换内核且使用 `--base-cache` 时约 11 分钟（�
 python3 tools/prepare-ubuntu-apt.py --rootfs out/ubuntu-desktop-pristine/ubuntu-desktop.squashfs \
   --snapshot <YYYYMMDDTHHMMSSZ> --output out/apt-release \
   --mozilla-firefox --download dracut device-tree-compiler openssh-server fake-hwclock systemd-zram-generator
-python3 tools/build-rootfs-image.py --squashfs out/ubuntu-desktop-pristine/ubuntu-desktop.squashfs ... \
-  --boot-profile <boot-profile.json> --boot-key <release signing key> --output out/rootfs-<version>
-# 预期 "state": "ROOT_IMAGE_BUILT_OFFLINE_CHECKS_PASS_NOT_BOOTED"
 ```
+
+根镜像使用 [RELEASE.md](RELEASE.md#building-a-release) 中的完整命令；完成后预期
+`"state": "ROOT_IMAGE_BUILT_OFFLINE_CHECKS_PASS_NOT_BOOTED"`。
 
 Firefox 使用 [Mozilla APT 仓库](https://support.mozilla.org/en-US/kb/install-firefox-linux)中未修改的
 ARM64 deb，以使用镜像的 Mesa 栈。`--mozilla-firefox` 按
@@ -252,6 +271,9 @@ python3 tools/build-release.py --rootfs-build out/rootfs-<version> \
 ```
 
 `--maintenance` 是必需输入；未执行可选 QEMU 启动检查时省略 `--boot-check`。
+先按 [RELEASE.md](RELEASE.md#building-a-release) 生成同一内核的维护镜像和变更说明。
+若未执行可选的 QEMU 启动检查，省略 `--boot-check`，并按发布验证要求记录未测项。
+
 `--forbid-file` 在全部输出中扫描本机标识。发布目录须与根镜像构建目录处于同一文件系统。
 目录布局、内容与安装步骤见[发布说明](RELEASE.md)和[安装指南](INSTALL.zh-CN.md)。
 

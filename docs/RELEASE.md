@@ -67,7 +67,7 @@ size and load addresses).
 | `wlan-address` | this unit (`wlan/wlan_mac.bin` on `persist`) | `/etc/piano/` | a random Wi-Fi MAC address on every boot |
 | `thp-calibration.json` | this unit's panel | `/etc/piano/` | no touch input |
 | `boot-profile.json` | this unit (`serial`) and its stock build (the rest) | `/etc/piano/` | `piano-boot-update` keeps the prebuilt set; `piano-boot-switch` refuses |
-| `boot-signing.pem` | the owner | `/etc/piano/` | `piano-boot-update` keeps the prebuilt set |
+| `boot-signing.pem` | local signing key | `/etc/piano/` | `piano-boot-update` keeps the prebuilt set |
 | `boot-partitions.json` | this unit's GPT (`tools/extract-boot-partitions.py`) | `/etc/piano/` | `piano-boot-switch` refuses; kernel and initrd updates leave the set and slot A unchanged |
 | Android set (`boot_a`, root-patched `init_boot_a`, `vendor_boot_a`) | this unit | `/var/lib/piano/switch/android/` | switching to Android from Ubuntu is refused; use Fastboot |
 | stock base DTB (`vendor_boot_a`) and DTBO entry (`dtbo_a`) | the stock build | `prepare-boot-dtb.py`, then the kernel package | needed only to build a kernel package |
@@ -76,17 +76,17 @@ size and load addresses).
 `piano-boot.dtb` in the kernel package were made from the stock build OS3.0.303.0.WPYCNXM; with
 another stock build, prepare the DTB and the set from your own images.
 
-## Release preparation (maintainers)
+## Installable kernel packaging (maintainers)
 
-Release changes are coordinated through the issue described in
-[CONTRIBUTING.md](../CONTRIBUTING.md#where-to-send-changes). For an existing release, rebuild
-from its committed locks without editing them. Local development builds are described in
-[BUILD.md](BUILD.md#local-kernel-development).
+[kernel/abi.json](../kernel/abi.json) allocates releases for **all installable packaged kernel
+builds**, including candidates such as `piano33` and `piano34`. Maintainers allocate an ABI when
+packaging a build, before it becomes an official release. Ordinary PRs do not reserve numbers or
+edit this ledger or release locks; coordinate packaging changes through an issue as described in
+[CONTRIBUTING.md](../CONTRIBUTING.md#where-to-send-changes).
 
-When preparing a new installable kernel, maintainers allocate `<version>-piano<N>` using the
-next unused integer in [kernel/abi.json](../kernel/abi.json). Never reuse, decrease or reset the
-number on an upstream update. Allocate a new ABI when the kernel commit, resulting `.config`
-or toolchain changes, including DTS-only changes; `CONFIG_MODVERSIONS` is off.
+Use `<version>-piano<N>` with the next unused integer. Never reuse, decrease or reset the number
+on an upstream update. Allocate a new ABI when the kernel commit, resulting `.config` or
+toolchain changes, including DTS-only changes; `CONFIG_MODVERSIONS` is off.
 
 1. Select the reviewed kernel commit and ordered `release_config_fragments` in
    [kernel/source.json](../kernel/source.json). Set `kernel_release` to the new release name;
@@ -97,12 +97,20 @@ or toolchain changes, including DTS-only changes; `CONFIG_MODVERSIONS` is off.
    Commit both locks together, then package the recorded build. An existing release with a
    different commit or configuration is refused. Raise `upload` only to repackage the same
    build with changed package content.
-4. Prepare the bilingual change list and release notes for that candidate. Record validation
-   under [Release validation](#release-validation).
+
+Rebuilding an allocated build leaves its committed locks unchanged. Local development builds
+are described in [BUILD.md](BUILD.md#local-kernel-development).
+
+## Release preparation (maintainers)
+
+Select the already allocated kernel build and prepare the bilingual change list and release
+notes. Publishing does not itself allocate another ABI. Record completed checks and untested
+paths under [Release validation](#release-validation).
 
 ## Building a release
 
-Host tools, none run as root: `dpkg-deb`, `python3-debian`, `img2simg`, `sgdisk`, `openssl`, `zip`,
+Host tools (the chroot image backend requires root; other stages run unprivileged):
+`dpkg-deb`, `python3-debian`, `img2simg`, `sgdisk`, `openssl`, `zip`,
 `zstd`, QEMU `qemu-system-aarch64` (TCG), squashfs-tools-ng 1.2 `sqfs2tar`, and e2fsprogs 1.47.4
 `mke2fs`/`e2fsck`/`debugfs`/`dumpe2fs` built with libarchive (the identity is recorded in the
 manifests). A full root image build takes about 30 minutes in the QEMU guest on an eight-core
@@ -145,15 +153,17 @@ python3 tools/build-release.py --rootfs-build out/rootfs-<version> \
 (cd out/release-<version> && sha256sum -c SHA256SUMS)
 ```
 
-- Request `tuned-ppd` from the signed snapshot for v0.5.0. The resolver permits
+Omit `--boot-check` when step 4 was not run, and list QEMU boot as untested.
+
+- Request `tuned-ppd` from the signed snapshot for the desktop image. The resolver permits
   removal only of `power-profiles-daemon` when replacing that provider. Image
   construction applies the supplied debs in one offline APT transaction and
   also permits replacing `iio-sensor-proxy` when the release supplies
   `piano-iio-sensor-proxy`. All other removals and downloads are forbidden. Profiles and configuration
   ownership are described in [device/power/tuned](../device/power/tuned/README.md).
 - `build-rootfs-image.py` streams the SquashFS into `mke2fs -d -` at the full partition size,
-  then boots a QEMU ARM64 guest that installs the packages into the target disk
-  ([tools/rootfs-image-guest.sh](../tools/rootfs-image-guest.sh)). The release key reaches the
+  then installs packages with the selected chroot or QEMU guest backend
+  ([BUILD.md](BUILD.md#root-image-backends)). In guest mode the release key reaches the
   guest only on a temporary input disk that is deleted afterwards. The boot profile is reduced to
   the stock-build fields; the unit's serial and observations are dropped.
 - The tool runs `e2fsck -fn`, checks the finished image with `debugfs` (`verification.json`:
@@ -176,7 +186,7 @@ untested paths. Bind each result to the candidate image/integration commit, kern
 commit, device/panel variant and stock build, following
 [CONTRIBUTING.md](../CONTRIBUTING.md#evidence). Keep the evidence summary in
 [STATUS.md](STATUS.md); a previous release's result does not validate a new candidate.
-Use the current cold-boot procedure in [AGENT-GUIDE.md §8.4](AGENT-GUIDE.md).
+Use the current cold-boot procedure in [AGENT-GUIDE.md §8.4](AGENT-GUIDE.md#84-release-cold-boot).
 
 ## Publishing
 

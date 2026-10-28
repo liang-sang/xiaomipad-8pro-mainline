@@ -16,7 +16,15 @@ switching tools, the slot attributes, Fastboot recovery and what must never be w
 
 Bind every command to your tablet (`adb -s <SERIAL>`, `fastboot -s <SERIAL>`,
 `piano-switch.py --serial <SERIAL>`) and run one tool against it at a time. Leave Android with at
-least 40 % battery; Linux does not charge.
+least 40 % battery before partition work. Current charging support and limitations are in
+[STATUS.md](STATUS.md); the early diagnostic kernel's lack of charging is historical.
+
+Before writing, [back up](INSTALL.md#2-back-up) and keep both boot sets on the host.
+Attend installation; release images have no debug console. Do not overlap boots, writes or
+captures with another session. On failure, stop at the earliest failing step: do not repeat a
+write after one failed status query, re-flash a completed filesystem write or interrupt a write
+still in progress. Check a new image with the [debug RAM procedure](AGENT-GUIDE.md#72-debug-ram-boot)
+before writing slot A; debug sets are not for normal persistent use.
 
 For host commands, set REPO, RELEASE and WORK as in [INSTALL.md](INSTALL.md#what-you-need):
 REPO is the absolute path to the checkout at the release's recorded integration commit, RELEASE is
@@ -126,12 +134,14 @@ Android set from the current slot A images and store it with
 ## From Android: KernelSU module
 
 Switching from Android is verified on the test unit. The module
-`tools/piano-switch-ksu-v0.2.0.zip` of the release needs KernelSU-Next with shell root, a stored
+`tools/piano-switch-ksu-<version>.zip` of the release needs KernelSU-Next with shell root, a stored
 `android/` set equal to slot A and a clean Ubuntu shutdown.
 
 ```bash
-adb -s <SERIAL> push "$RELEASE/tools/piano-switch-ksu-v0.2.0.zip" /data/local/tmp/
-adb -s <SERIAL> shell su -c '/data/adb/ksud module install /data/local/tmp/piano-switch-ksu-v0.2.0.zip'
+KSU_VERSION=$(sed -n 's/^version=//p' "$REPO/device/android/piano-switch-ksu/module/module.prop")
+KSU_ZIP="piano-switch-ksu-$KSU_VERSION.zip"
+adb -s <SERIAL> push "$RELEASE/tools/$KSU_ZIP" /data/local/tmp/
+adb -s <SERIAL> shell su -c "/data/adb/ksud module install /data/local/tmp/$KSU_ZIP"
 adb -s <SERIAL> reboot
 adb -s <SERIAL> shell su -c 'sh /data/adb/modules/piano-switch/piano-switch.sh --check'
 # expect "CHECK OK: slot A holds the android set and the ubuntu set is ready; nothing written"

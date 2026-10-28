@@ -1,6 +1,7 @@
-<!-- Follow CONTRIBUTING.md. Leave ABI allocations, kernel pins and release notes to
-maintainers during release preparation. Do not announce approvals or test conclusions
-on anyone else's behalf; report only the evidence below. -->
+<!-- Follow CONTRIBUTING.md. Ordinary PRs do not reserve ABI numbers or change
+kernel/abi.json or release locks. Maintainers allocate ABIs when packaging installable
+builds, including candidates. Do not announce approvals or test conclusions on anyone
+else's behalf; report only the evidence below. -->
 
 ## Problem and change
 

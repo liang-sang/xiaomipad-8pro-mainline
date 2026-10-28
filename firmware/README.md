@@ -61,7 +61,7 @@ build may be included here. Per-unit sensor registry, factory and touch calibrat
 addresses, credentials and stock backups remain private. ROM-default sensor `fac_cal` entries
 are generic configuration; values from a unit's persist registry are not.
 
-The stock payloads are distributed unmodified for interoperability. No redistribution licence
+The stock payloads are distributed unmodified solely for interoperability. No redistribution licence
 has been granted by their rights holders, and the project's licences do not cover them. Files
 will be removed at a rights holder's request. Users may supply their own extraction as described
 above.
