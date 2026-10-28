@@ -5,10 +5,10 @@ requests below `/usr/lib/firmware`. The packaging tools use this tree by default
 
 ## Origin
 
-All files come from stock build **OS3.0.303.0.WPYCNXM** and are byte-identical to the stock files.
+All stock payloads come from stock build **OS3.0.303.0.WPYCNXM** and are byte-identical to the stock files.
 Only the Wi-Fi files are renamed, to the names `ath12k` requests (the mapping is in `piano-wlan.json`).
 The source partitions are written by system updates and are the same on every unit with this build.
-Per-unit data is excluded (see below).
+Per-unit data is excluded under the [distribution policy](#distribution-policy).
 
 | Directory | Files | Loaded by | Stock source | Lock |
 |---|---|---|---|---|
@@ -21,6 +21,7 @@ Per-unit data is excluded (see below).
 | `novatek/piano/` | `novatek_nt36532_piano_fw_csot.bin`, `novatek_nt36532_piano_fw_boe.bin` (CSOT and BOE panels; the driver picks one by panel ID) | `nt36532e-thp` (touch) | `odm_a`, `firmware/` | `piano-input.json` |
 | `nanosic/piano/` | `MCU_Upgrade.bin` | `hid-nanosic` (keyboard bridge) | `odm_a`, `firmware/` | `piano-input.json` |
 | `foursemi/piano/` | `fs19xx.fsm` (register preset of the four amplifiers) | `snd-soc-fs19xx` (speaker amplifiers) | `odm_a`, `firmware/` | `piano-audio.json` |
+| `sensors/odm/`, `sensors/vendor/` | 66 static sensor configuration files | `piano-sensors` registry staging | `odm_a`, `vendor_a` | `sensors/source.json` |
 
 Each lock pins the name, size and SHA-256 of its files. `piano-os3.0.303.0.json` also pins the CDSP
 images and service maps of the same build. They are not shipped because the current kernel does not
@@ -53,12 +54,21 @@ different file stops the build. A different stock build therefore needs updated 
 `tools/stage-firmware.py --firmware-dir /path/to/modem/image` stages the DSP files alone from the
 flat stock `image/` directory.
 
+## Distribution policy
+
+Generic stock firmware and static ODM/vendor configuration shared by units of the same stock
+build may be included here. Per-unit sensor registry, factory and touch calibration, radio
+addresses, credentials and stock backups remain private. ROM-default sensor `fac_cal` entries
+are generic configuration; values from a unit's persist registry are not.
+
+The stock payloads are distributed unmodified for interoperability. No redistribution licence
+has been granted by their rights holders, and the project's licences do not cover them. Files
+will be removed at a rights holder's request. Users may supply their own extraction as described
+above.
+
 ## Licence
 
-`SPDX-License-Identifier: LicenseRef-Proprietary-Firmware`
-([text](../LICENSES/LicenseRef-Proprietary-Firmware.txt)). This applies to every file in the
-subdirectories. This README and the `piano-*.json` locks are MIT, like the rest of the project.
-
-The vendors have granted no redistribution licence. The files are distributed unmodified for
-interoperability, so that owners of this device can run mainline Linux on it. The licences of this
-repository do not cover them. They will be removed at a rights holder's request.
+The stock payloads listed in the table carry `LicenseRef-Proprietary-Firmware`
+([text](../LICENSES/LicenseRef-Proprietary-Firmware.txt)); [REUSE.toml](../REUSE.toml) identifies
+those files. Project documentation and identity locks, including this README,
+`sensors/README.md`, `sensors/source.json` and `piano-*.json`, remain MIT.

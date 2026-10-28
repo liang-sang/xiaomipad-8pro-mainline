@@ -238,6 +238,5 @@ fastboot -s <serial> reboot
 
 各文件的来源、提交与改动记录在 [NOTICE](NOTICE)。除文件 SPDX 头另有声明外，原创集成代码采用
 [MIT](LICENSE)；若干改编自 GPL-2.0-only 来源的工具保持 GPL-2.0-only。内核为 GPL-2.0。第三方组件保留各自
-许可（见 `LICENSES/`）。[firmware/](firmware/README.md) 中的原厂固件取自 OS3.0.303.0.WPYCNXM，为互操作目的
-原样分发。相关厂商未授予再分发许可；这些固件不受上述许可覆盖，权利人要求时将予以移除。你也可以用文档所述
-工具换成从自己设备提取的固件。
+许可（见 `LICENSES/`）。原厂固件与静态传感器配置的分发政策和自备提取文件的方法统一见
+[firmware/README.md](firmware/README.md#distribution-policy)。

@@ -54,7 +54,7 @@
 | Ubuntu | 26.04 Desktop ARM64 ISO | SHA-256 `c2afd538d66fdd77377d03f1ed2ac76a34f1c116baecc9a8170d68f833121f57`；`ubuntu/26.04.sources` |
 | AOSP mkbootimg | `tools/fetch-aosp-mkbootimg.sh` | 提交 `954bc3ead5e679005fddf3484d247f2557b3c2c9` |
 | BusyBox（ARM64） | `tools/fetch-busybox-arm64.sh` | `busybox-static_1.36.1-6ubuntu3.1_arm64.deb` |
-| avbtool | AOSP `external/avb` | 获取脚本尚不可用；用 `--avbtool` 传入 |
+| avbtool | AOSP `external/avb` | [tools/aosp-avb.json](../tools/aosp-avb.json)；`tools/fetch-aosp-avb.sh` |
 
 ```bash
 git rev-parse HEAD                                          # 集成提交，记录下来
@@ -64,6 +64,7 @@ git -C ../linux rev-parse HEAD                              # 预期与上一行
 git -C ../linux status --porcelain --untracked-files=no     # 预期无输出
 python3 tools/kernel_tag.py ../linux                        # 预期 "v7.2.6"（Makefile 版本对应的上游 tag）
 sh tools/fetch-aosp-mkbootimg.sh                            # 固定版本检出到 tools/local/aosp-mkbootimg
+sh tools/fetch-aosp-avb.sh                                # 校验固定提交、SHA-256 和版本
 sh tools/fetch-busybox-arm64.sh                             # 预期 ".../usr/bin/busybox: OK"
 ```
 
@@ -152,7 +153,7 @@ MESA_SOURCE=<Mesa checkout at mesa/source.json> CROSS_FILE=<arm64 cross file> \
 
 python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYMMDD>.<n> \
   --thp-live out/piano-thp-arm64/piano-thp-live --mesa-build out/mesa \
-  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool <avbtool.py>
+  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool tools/local/aosp-avb/avbtool.py
 # 预期 "Local packages created; no packages installed or device accessed"，以及
 # piano-device-support、piano-mesa、piano-ubuntu-desktop 三个 deb 和 manifest.json
 
@@ -178,7 +179,7 @@ python3 tools/build-persistent-boot.py \
   --kernel <root>/boot/vmlinuz-<release> --kernel-release <release> \
   --dtb <root>/usr/lib/linux-image-<release>/piano-boot.dtb --initrd <root>/boot/initrd.img-<release> \
   --profile <boot-profile.json> --root-partuuid <linux_rootfs PARTUUID> --bt-address-file <bluetooth-address> \
-  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool <avbtool.py> --key <boot-signing.pem> \
+  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool tools/local/aosp-avb/avbtool.py --key <boot-signing.pem> \
   --output out/ubuntu-set-<release>
 # 预期 '{"output": ".../out/ubuntu-set-<release>", "images": ["boot", "init_boot", "vendor_boot"]}'
 (cd out/ubuntu-set-<release> && sha256sum -c SHA256SUMS)    # 预期三行 "OK"
@@ -293,7 +294,7 @@ adb -s <SERIAL> exec-out su -c 'dd if=/dev/block/sdX bs=4096 skip=<blocks-34> 2>
 ```bash
 python3 tools/local/aosp-mkbootimg/unpack_bootimg.py --boot_img backup/vendor_boot_a.img --out /tmp/vb
 # 头版本、页大小、kernel/ramdisk/tags 加载地址、dtb 地址
-python3 <avbtool.py> info_image --image backup/boot_a.img
+python3 tools/local/aosp-avb/avbtool.py info_image --image backup/boot_a.img
 # "Rollback Index:" 与所有 "Prop: com.android.build.boot.*" 行；init_boot_a、vendor_boot_a 同样处理
 fastboot -s <SERIAL> getvar partition-size:boot_a           # 预期 "partition-size:boot_a: 0x6000000"
 ```
@@ -530,7 +531,7 @@ Android 下次启动时重建 `userdata` 和 `metadata`；全部 Android 数据�
 python3 tools/build-persistent-boot.py --kernel out/install/vmlinuz-<release> --kernel-release <release> \
   --dtb out/install/piano-boot.dtb --initrd out/install/initrd.img-<release> \
   --profile boot-profile.json --root-partuuid "$ROOT_UUID" --bt-address-file bluetooth-address \
-  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool <avbtool.py> --key boot-signing.pem \
+  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool tools/local/aosp-avb/avbtool.py --key boot-signing.pem \
   --debug --debug-timeout 900 --output out/install/debug-set
 fastboot -s <SERIAL> boot out/install/debug-set/boot-ram-check.img     # 预期 "Booting OKAY"
 ```

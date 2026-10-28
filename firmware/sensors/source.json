@@ -1,7 +1,7 @@
 {
   "stock_build": "OS3.0.303.0.WPYCNXM",
   "source": "piano stock ODM/vendor configuration, extracted 2026-09-22",
-  "license": "Proprietary; redistribution permission not established. Distributed by owner decision 2026-10-12 under the firmware policy; remove upon rightsholder request.",
+  "license": "LicenseRef-Proprietary-Firmware; distribution policy: firmware/README.md",
   "scope": "Static ROM configuration only. No persist registry or unit calibration.",
   "files": [
     {

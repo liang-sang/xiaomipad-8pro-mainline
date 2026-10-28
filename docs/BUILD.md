@@ -16,7 +16,7 @@ Commands run from the root of this repository.
 | Stage | Tools |
 |---|---|
 | Kernel | Git, Python 3, GCC, an AArch64 GNU cross compiler, make, bc, bison, flex, pkg-config, OpenSSL and libelf development files, gzip, cpio, kmod (`depmod`), flock; ccache optional |
-| Boot DTB and boot set | `device-tree-compiler` (`fdtget`, `fdtput`), `python3-libfdt`, AOSP libufdt `ufdt_apply_overlay`, AOSP `avbtool.py` (no fetch script yet), `openssl` |
+| Boot DTB and boot set | `device-tree-compiler` (`fdtget`, `fdtput`), `python3-libfdt`, AOSP libufdt `ufdt_apply_overlay`, AOSP `avbtool.py` ([lock](../tools/aosp-avb.json)), `openssl` |
 | Packages | `dpkg-deb`, `python3-debian`, `g++-13-aarch64-linux-gnu`, `nlohmann-json3-dev`, `qemu-user-static`, `m4`, `alsatplg` |
 | Mesa | Meson 1.9, Ninja, Mako, PyYAML, Python packaging, Bison, Flex, a native `glslangValidator`, an ARM64 GCC/G++ cross toolchain, and a Meson cross file with an explicit ARM64 sysroot (libdrm, zlib, zstd, expat, Wayland 1.24 and wayland-protocols, X11/XCB development packages from Ubuntu 26.04) |
 | Ubuntu base | `7z`, `unsquashfs`, squashfs-tools-ng 1.2 (`sqfs2tar`), `apt`, `python3-apt` |
@@ -24,6 +24,7 @@ Commands run from the root of this repository.
 
 ```bash
 sh tools/fetch-aosp-mkbootimg.sh       # pinned checkout in tools/local/aosp-mkbootimg
+sh tools/fetch-aosp-avb.sh                                # verify the pinned commit, SHA-256 and version
 sh tools/fetch-busybox-arm64.sh        # expect ".../usr/bin/busybox: OK"
 ```
 
@@ -120,7 +121,7 @@ MESA_SOURCE=<Mesa checkout at mesa/source.json> CROSS_FILE=<arm64 cross file> \
 # piano-device-support, piano-mesa, piano-ubuntu-desktop
 python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYMMDD>.<n> \
   --thp-live out/piano-thp-arm64/piano-thp-live --mesa-build out/mesa \
-  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool <avbtool.py>
+  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool tools/local/aosp-avb/avbtool.py
 # capture topology (AudioReach checkout at device/audio/source.json), then piano-local-firmware
 mkdir -p out/audio
 m4 -I <audioreach-topology checkout> device/audio/Piano-Capture-Diag.m4 > out/audio/Piano-Capture-Diag.conf
@@ -163,7 +164,7 @@ python3 tools/build-persistent-boot.py \
   --kernel <root>/boot/vmlinuz-<release> --kernel-release <release> \
   --dtb <root>/usr/lib/linux-image-<release>/piano-boot.dtb --initrd <root>/boot/initrd.img-<release> \
   --profile <boot-profile.json> --root-partuuid <linux_rootfs PARTUUID> --bt-address-file <bluetooth-address> \
-  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool <avbtool.py> --key <boot-signing.pem> \
+  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool tools/local/aosp-avb/avbtool.py --key <boot-signing.pem> \
   --output out/ubuntu-set-<release>
 ```
 

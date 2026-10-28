@@ -82,6 +82,10 @@ def main():
             if getattr(a, name) is None:
                 ap.error('--' + name.replace('_', '-') + ' is required unless --desktop-only, --snap-graphics-only or --mipps-auth-only')
     repo = Path(__file__).resolve().parents[1]
+    if a.avbtool is not None:
+        avb_pin = json.loads((repo / 'tools/aosp-avb.json').read_text())
+        if sha(a.avbtool) != avb_pin['avbtool_sha256']:
+            ap.error('--avbtool differs from tools/aosp-avb.json; run tools/fetch-aosp-avb.sh')
     a.output.mkdir(parents=True, exist_ok=False)
     stages = a.output / 'stages'
     stages.mkdir()

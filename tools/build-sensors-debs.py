@@ -89,6 +89,8 @@ def package(root, output, name, version, depends, relations, description, epoch,
     docs = root / 'usr/share/doc' / name
     docs.mkdir(parents=True, exist_ok=True)
     copy(REPO / 'NOTICE', docs / 'NOTICE')
+    copy(REPO / 'firmware/README.md', docs / 'firmware-policy.md')
+    copy(REPO / 'LICENSES/LicenseRef-Proprietary-Firmware.txt', docs / 'proprietary-firmware.txt')
     copy(REPO / 'device/sensors/README.zh-CN.md', docs / 'README.zh-CN.md')
     (docs / 'sources.json').write_text(json.dumps(sources, indent=2) + '\n')
     (docs / 'copyright').write_text(
@@ -105,13 +107,12 @@ def package(root, output, name, version, depends, relations, description, epoch,
         'License: GPL-3\n\n'
         'Files: usr/share/piano/sensors/odm/* usr/share/piano/sensors/vendor/*\n'
         'Copyright: Xiaomi, Qualcomm and respective sensor vendors\nLicense: proprietary-stock\n'
-        'Comment: Stock configuration distributed under the same owner decision as firmware.\n'
-        ' No persist calibration. See firmware/sensors/source.json in the source repository.\n\n'
+        'Comment: Stock configuration only; no persist calibration.\n'
+        ' See firmware-policy.md and firmware/sensors/source.json in the source repository.\n\n'
         'License: GPL-3+\n This program may be redistributed under GPL version 3 or later.\n'
         ' On Debian systems see /usr/share/common-licenses/GPL-3.\n\n'
         'License: GPL-3\n On Debian systems see /usr/share/common-licenses/GPL-3.\n\n'
-        'License: proprietary-stock\n No redistribution licence has been established.\n'
-        ' Distributed by owner decision; remove upon rightsholder request.\n\n'
+        'License: proprietary-stock\n See proprietary-firmware.txt in this directory.\n\n'
         'License: MIT\n' + ''.join(' ' + line + '\n' if line else ' .\n'
                                   for line in (REPO / 'LICENSE').read_text().split('\n\nFiles carrying')[0].splitlines()))
     changelog = (f'{name} ({version}) unstable; urgency=medium\n\n'

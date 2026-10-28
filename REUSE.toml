@@ -1,32 +1,246 @@
 version = 1
 
+# Stock payloads only; README files and source locks are MIT project metadata.
+
 [[annotations]]
-path = "firmware/*/**"
+path = [
+  "firmware/ath12k/WCN7860/hw2.0/amss.bin",
+  "firmware/ath12k/WCN7860/hw2.0/aux_ucode.bin",
+  "firmware/ath12k/WCN7860/hw2.0/board.bin",
+  "firmware/ath12k/WCN7860/hw2.0/m3.bin",
+  "firmware/ath12k/WCN7860/hw2.0/qdss.cfg",
+  "firmware/ath12k/WCN7860/hw2.0/regdb.bin",
+  "firmware/foursemi/piano/fs19xx.fsm",
+  "firmware/nanosic/piano/MCU_Upgrade.bin",
+  "firmware/novatek/piano/novatek_nt36532_piano_fw_boe.bin",
+  "firmware/novatek/piano/novatek_nt36532_piano_fw_csot.bin",
+  "firmware/qca/gngbtfw20.mbn",
+  "firmware/qca/gngbtnv20.b11",
+  "firmware/qca/gngbtnv20.b24",
+  "firmware/qca/gngbtnv20.b25",
+  "firmware/qca/gngbtnv20.b26",
+  "firmware/qca/gngbtnv20.b27",
+  "firmware/qca/gngbtnv20.b29",
+  "firmware/qca/gngbtnv20.b2a",
+  "firmware/qca/gngbtnv20.b2b",
+  "firmware/qca/gngbtnv20.b2c",
+  "firmware/qca/gngbtnv20.b2d",
+  "firmware/qca/gngbtnv20.b2e",
+  "firmware/qca/gngbtnv20.b2f",
+  "firmware/qca/gngbtnv20.b30",
+  "firmware/qca/gngbtnv20.b31",
+  "firmware/qca/gngbtnv20.b32",
+  "firmware/qca/gngbtnv20.b33",
+  "firmware/qca/gngbtnv20.b3a",
+  "firmware/qca/gngbtnv20.b3b",
+  "firmware/qca/gngbtnv20.b3c",
+  "firmware/qca/gngbtnv20.b3d",
+  "firmware/qca/gngbtnv20.b3e",
+  "firmware/qca/gngbtnv20.b3f",
+  "firmware/qca/gngbtnv20.b40",
+  "firmware/qca/gngbtnv20.b42",
+  "firmware/qca/gngbtnv20.b43",
+  "firmware/qca/gngbtnv20.bin",
+  "firmware/qcom/gen80000_aqe.fw",
+  "firmware/qcom/gen80000_gmu.bin",
+  "firmware/qcom/gen80000_sqe.fw",
+  "firmware/qcom/sm8750/piano/adsp.b01",
+  "firmware/qcom/sm8750/piano/adsp.b02",
+  "firmware/qcom/sm8750/piano/adsp.b03",
+  "firmware/qcom/sm8750/piano/adsp.b04",
+  "firmware/qcom/sm8750/piano/adsp.b05",
+  "firmware/qcom/sm8750/piano/adsp.b06",
+  "firmware/qcom/sm8750/piano/adsp.b07",
+  "firmware/qcom/sm8750/piano/adsp.b08",
+  "firmware/qcom/sm8750/piano/adsp.b09",
+  "firmware/qcom/sm8750/piano/adsp.b10",
+  "firmware/qcom/sm8750/piano/adsp.b11",
+  "firmware/qcom/sm8750/piano/adsp.b12",
+  "firmware/qcom/sm8750/piano/adsp.b13",
+  "firmware/qcom/sm8750/piano/adsp.b14",
+  "firmware/qcom/sm8750/piano/adsp.b15",
+  "firmware/qcom/sm8750/piano/adsp.b16",
+  "firmware/qcom/sm8750/piano/adsp.b17",
+  "firmware/qcom/sm8750/piano/adsp.b18",
+  "firmware/qcom/sm8750/piano/adsp.b19",
+  "firmware/qcom/sm8750/piano/adsp.b20",
+  "firmware/qcom/sm8750/piano/adsp.b21",
+  "firmware/qcom/sm8750/piano/adsp.b22",
+  "firmware/qcom/sm8750/piano/adsp.b23",
+  "firmware/qcom/sm8750/piano/adsp.b24",
+  "firmware/qcom/sm8750/piano/adsp.b25",
+  "firmware/qcom/sm8750/piano/adsp.b26",
+  "firmware/qcom/sm8750/piano/adsp.b28",
+  "firmware/qcom/sm8750/piano/adsp.b29",
+  "firmware/qcom/sm8750/piano/adsp.b30",
+  "firmware/qcom/sm8750/piano/adsp.b31",
+  "firmware/qcom/sm8750/piano/adsp.b32",
+  "firmware/qcom/sm8750/piano/adsp.b33",
+  "firmware/qcom/sm8750/piano/adsp.b34",
+  "firmware/qcom/sm8750/piano/adsp.b35",
+  "firmware/qcom/sm8750/piano/adsp.b36",
+  "firmware/qcom/sm8750/piano/adsp.b37",
+  "firmware/qcom/sm8750/piano/adsp.b38",
+  "firmware/qcom/sm8750/piano/adsp.b39",
+  "firmware/qcom/sm8750/piano/adsp.b40",
+  "firmware/qcom/sm8750/piano/adsp.b41",
+  "firmware/qcom/sm8750/piano/adsp.b42",
+  "firmware/qcom/sm8750/piano/adsp.b43",
+  "firmware/qcom/sm8750/piano/adsp.b44",
+  "firmware/qcom/sm8750/piano/adsp.b45",
+  "firmware/qcom/sm8750/piano/adsp.b46",
+  "firmware/qcom/sm8750/piano/adsp.b47",
+  "firmware/qcom/sm8750/piano/adsp.b48",
+  "firmware/qcom/sm8750/piano/adsp.b49",
+  "firmware/qcom/sm8750/piano/adsp.b50",
+  "firmware/qcom/sm8750/piano/adsp.b51",
+  "firmware/qcom/sm8750/piano/adsp.b52",
+  "firmware/qcom/sm8750/piano/adsp.b53",
+  "firmware/qcom/sm8750/piano/adsp.b54",
+  "firmware/qcom/sm8750/piano/adsp.mdt",
+  "firmware/qcom/sm8750/piano/adsp_dtb.b01",
+  "firmware/qcom/sm8750/piano/adsp_dtb.mdt",
+  "firmware/qcom/sm8750/vpu35_4v.mbn",
+  "firmware/qcom/sm8750/xiaomi/piano/gen80000_zap.mbn",
+  "firmware/sensors/odm/config/chre_dynamic_sensors.json",
+  "firmware/sensors/odm/config/json.lst",
+  "firmware/sensors/odm/config/lsm6dso_0.json",
+  "firmware/sensors/odm/config/pakala_ccd_base.json",
+  "firmware/sensors/odm/config/qmc6308_0.json",
+  "firmware/sensors/odm/config/qsh_camera_aon_front_i_1.json",
+  "firmware/sensors/odm/config/qsh_camera_common.json",
+  "firmware/sensors/odm/config/qsh_camera_imx688_6.json",
+  "firmware/sensors/odm/config/qsh_camera_imx688_6_actuator.json",
+  "firmware/sensors/odm/config/qsh_camera_ov32c4c_4.json",
+  "firmware/sensors/odm/config/sip1328.json",
+  "firmware/sensors/odm/config/sm8750_default_sensors.json",
+  "firmware/sensors/odm/config/sm8750_dynamic_sensors.json",
+  "firmware/sensors/odm/config/sm8750_irq.json",
+  "firmware/sensors/odm/config/sm8750_lsm6dso_0.json",
+  "firmware/sensors/odm/config/sm8750_power_0.json",
+  "firmware/sensors/odm/config/sm8750_qmc6308_0.json",
+  "firmware/sensors/odm/config/sm8750_sip1328.json",
+  "firmware/sensors/odm/config/sm8750_stk3bcx_0.json",
+  "firmware/sensors/odm/config/sm8750_sx937x_0.json",
+  "firmware/sensors/odm/config/sns_amd.json",
+  "firmware/sensors/odm/config/sns_aont.json",
+  "firmware/sensors/odm/config/sns_ccd_v1_0_amd.json",
+  "firmware/sensors/odm/config/sns_ccd_v3_1_walk.json",
+  "firmware/sensors/odm/config/sns_ccd_v4_0_sensors.json",
+  "firmware/sensors/odm/config/sns_ccd_v5_0.json",
+  "firmware/sensors/odm/config/sns_ccd_v5_1_te_cd_regs.json",
+  "firmware/sensors/odm/config/sns_ccd_v6_0.json",
+  "firmware/sensors/odm/config/sns_ccd_v6_0_sensors.json",
+  "firmware/sensors/odm/config/sns_ccd_v6_0_te_cd_regs.json",
+  "firmware/sensors/odm/config/sns_cm.json",
+  "firmware/sensors/odm/config/sns_collision_detection.json",
+  "firmware/sensors/odm/config/sns_dae.json",
+  "firmware/sensors/odm/config/sns_device_orient.json",
+  "firmware/sensors/odm/config/sns_diag_filter.json",
+  "firmware/sensors/odm/config/sns_direct_channel.json",
+  "firmware/sensors/odm/config/sns_distance_bound.json",
+  "firmware/sensors/odm/config/sns_dpc.json",
+  "firmware/sensors/odm/config/sns_facing.json",
+  "firmware/sensors/odm/config/sns_flight_md.json",
+  "firmware/sensors/odm/config/sns_fmv.json",
+  "firmware/sensors/odm/config/sns_geomag_rv.json",
+  "firmware/sensors/odm/config/sns_gyro_cal.json",
+  "firmware/sensors/odm/config/sns_gyro_cal_dynamic.json",
+  "firmware/sensors/odm/config/sns_healthy_use_of_mobile.json",
+  "firmware/sensors/odm/config/sns_mag_cal.json",
+  "firmware/sensors/odm/config/sns_oem_hall.json",
+  "firmware/sensors/odm/config/sns_offbody_detect_phone.json",
+  "firmware/sensors/odm/config/sns_pedometer.json",
+  "firmware/sensors/odm/config/sns_rmd.json",
+  "firmware/sensors/odm/config/sns_rotv.json",
+  "firmware/sensors/odm/config/sns_sar_algo.json",
+  "firmware/sensors/odm/config/sns_screen_down.json",
+  "firmware/sensors/odm/config/sns_smd.json",
+  "firmware/sensors/odm/config/sns_tilt.json",
+  "firmware/sensors/odm/config/sns_tilt_to_wake.json",
+  "firmware/sensors/odm/config/sns_transport_ppe.json",
+  "firmware/sensors/odm/config/stk3bcx_0.json",
+  "firmware/sensors/odm/config/sx937x_0.json",
+  "firmware/sensors/odm/config/sx937x_reg_0.json",
+  "firmware/sensors/vendor/config/chre_dynamic_sensors.json",
+  "firmware/sensors/vendor/config/qsh_camera_common_sm8735.json",
+  "firmware/sensors/vendor/config/qsh_camera_ov32c4c_4_sm8735.json",
+  "firmware/sensors/vendor/hals.conf",
+  "firmware/sensors/vendor/sns_odp_config",
+  "firmware/sensors/vendor/sns_reg_config",
+]
 SPDX-FileCopyrightText = "Respective rights holders of the stock firmware, such as Xiaomi, Qualcomm, Novatek and Nanosic"
 SPDX-License-Identifier = "LicenseRef-Proprietary-Firmware"
 
-# Patches carry the licence of the upstream files they change (see NOTICE).
 [[annotations]]
-path = "device/sensors/hexagonrpc/patches/0001-*.patch"
+path = [
+  "device/sensors/hexagonrpc/patches/0001-fix-type-sequence-marshalling.patch",
+]
 SPDX-FileCopyrightText = "HexagonRPC contributors; The piano mainline project contributors"
 SPDX-License-Identifier = "LGPL-3.0-or-later AND GPL-3.0-or-later"
 
 [[annotations]]
-path = ["device/sensors/hexagonrpc/patches/0002-*.patch", "device/sensors/libssc/patches/*.patch"]
-SPDX-FileCopyrightText = "HexagonRPC and libssc contributors; The piano mainline project contributors"
+path = [
+  "device/sensors/hexagonrpc/patches/0002-avoid-unaligned-metadata-store-and-null-test-comparison.patch",
+  "device/sensors/hexagonrpc/patches/0003-serve-odm-and-explicit-scratch-registry.patch",
+  "device/sensors/hexagonrpc/patches/0004-map-complete-registry-parent.patch",
+  "device/sensors/hexagonrpc/patches/0006-test-and-validate-large-listener-inputs.patch",
+  "device/sensors/hexagonrpc/patches/0007-implement-frename-in-the-writable-registry.patch",
+]
+SPDX-FileCopyrightText = "HexagonRPC contributors; The piano mainline project contributors"
 SPDX-License-Identifier = "GPL-3.0-or-later"
 
 [[annotations]]
-path = "device/sensors/libssc/sensorproxy-patches/0001-*.patch"
+path = [
+  "device/sensors/hexagonrpc/patches/0005-upstream-fetch-large-listener-inputs.patch",
+]
+SPDX-FileCopyrightText = "HexagonRPC contributors; Fady"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = [
+  "device/sensors/libssc/patches/0001-propagate-test-process-exit-status.patch",
+]
+SPDX-FileCopyrightText = "Dylan Van Assche; The piano mainline project contributors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = [
+  "device/sensors/libssc/sensorproxy-patches/0001-wait-for-discovery-notifications.patch",
+]
 SPDX-FileCopyrightText = "Martin Pitt, Bastien Nocera; The piano mainline project contributors"
 SPDX-License-Identifier = "GPL-2.0-or-later"
 
 [[annotations]]
-path = ["device/sensors/libssc/sensorproxy-patches/0003-*.patch", "device/sensors/libssc/sensorproxy-patches/0005-*.patch", "device/sensors/libssc/sensorproxy-patches/0006-*.patch"]
+path = [
+  "device/sensors/libssc/sensorproxy-patches/0003-iio-sensor-proxy-start-preclaimed-coldplug-sensor.patch",
+  "device/sensors/libssc/sensorproxy-patches/0004-iio-sensor-proxy-serialize-ssc-accel-polling.patch",
+  "device/sensors/libssc/sensorproxy-patches/0005-iio-sensor-proxy-cancel-released-pending-claims.patch",
+  "device/sensors/libssc/sensorproxy-patches/0006-iio-sensor-proxy-broadcast-sensor-availability.patch",
+]
 SPDX-FileCopyrightText = "Bastien Nocera; liuqin mainline project contributors"
 SPDX-License-Identifier = "GPL-3.0-only"
 
 [[annotations]]
-path = "mesa/a830-speedbin.patch"
+path = [
+  "mesa/piano-fixes.patch",
+]
 SPDX-FileCopyrightText = "Mesa contributors; The piano mainline project contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+  "firmware/piano-audio.json",
+  "firmware/piano-bluetooth-rom20.json",
+  "firmware/piano-gpu.json",
+  "firmware/piano-input.json",
+  "firmware/piano-iris.json",
+  "firmware/piano-os3.0.303.0.json",
+  "firmware/piano-wlan.json",
+  "firmware/README.md",
+  "firmware/sensors/README.md",
+  "firmware/sensors/source.json",
+  "tools/aosp-avb.json",
+]
+SPDX-FileCopyrightText = "2026 The piano mainline project contributors"
 SPDX-License-Identifier = "MIT"

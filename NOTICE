@@ -1,601 +1,371 @@
 Third-party attribution
+=======================
 
-device/platform/piano-physical-platform:
-  Adapted from the independent local erhai integration repository, commit
-  8f41f82dd431a4d74f2dc26f4e19f10c3b208623, source path
-  packaging/erhai-device-support/tree/usr/libexec/erhai-physical-platform.
-  License: GPL-2.0-only. No public source URL is assumed.
-  Changes: require piano's restored identity and observed HLOS VMID=3;
-  inspect bound platform devices by their OF node; leave other boards/QEMU
-  unchanged; include the helper in the RAM handoff with its content hash.
-  This is a temporary userspace export policy, not a kernel hypervisor change.
+This file records component sources, imported files, licences and local changes.
+Per-file notices and the texts in LICENSES/ remain authoritative for licensing.
+Hardware results belong in docs/STATUS.md. Stock-file distribution policy is in
+firmware/README.md; project licences do not grant rights in stock payloads.
 
-tools/fetch-aosp-mkbootimg.sh:
-  Adapted from the liuqin mainline project.
-  Repository: https://github.com/yzddmr6/xiaomipad-6pro-mainline
-  Source commit: 7df47f82f6e6ca5a04ab02fbcc4a3486c6a259be
-  Source path: tools/fetch-aosp-mkbootimg.sh
-  License: MIT; full original notice in LICENSES/liuqin-MIT.txt.
-  Changes: retrieve the same pinned commit using Git instead of a generated
-  Gitiles archive; retain script content hashes and reject modified checkouts.
-  This local reference commit is not assumed to be available on the public remote.
-
-The fetched AOSP source is a separate checkout. Its per-file copyright and
-license headers are preserved; it is not included in this repository.
-
-tools/fetch-busybox-arm64.sh:
-  Adapted from the same liuqin commit, tools/fetch-busybox-arm64.sh (MIT).
-  Changes: HTTPS Ubuntu Ports URL and explicit download/extraction directories.
-  The downloaded BusyBox binary is a separate GPL-licensed Ubuntu package.
-
-tools/prepare-ubuntu-desktop.sh:
-  Adapted from the same liuqin commit,
-  tools/build-liuqin-ubuntu-desktop-rootfs.sh (MIT).
-  Retains original ISO and casper layer identities and 7z extraction.
-  Provides only unprivileged original-layer preparation; no rootfs mutation.
-
-tools/build-kernel.sh, tools/build-initramfs.sh, initramfs/init,
-initramfs/usb-diag (originally usb-acm):
-  Adapted from the erhai integration project, commit
-  e02d52ffc7859aba2b41a257b7a9dca73c9dbedb, with the same source paths.
-  License: GPL-2.0-only; see LICENSES/GPL-2.0-only.txt.
-  Changes: piano diagnostic names, pinned kernel input, reference-only DTB
-  targets, minimal ACM ramdisk without board firmware, explicit build inputs
-  and a bounded diagnostic reboot timer. The original authorship is retained
-  in the independent source snapshot; no public source URL is assumed.
-  The NCM branch additionally reuses initramfs/usb-ncm from the same commit:
-  configfs NCM, a one-address DHCP lease without router/DNS, and a USB-bound
-  BusyBox telnet shell. Piano network parameters and USB serial are local;
-  no reference-device address, serial or host permission changes are imported.
-  ACM and NCM share one gadget setup implementation.
-
-initramfs/piano-maint, initramfs/restart2.c and tools/prepare-maintenance-payload.py:
-  Original (GPL-2.0-only). The maintenance mode of the same RAM init reuses its
-  NCM gadget and BusyBox telnet shell. restart2.c is compiled against the
-  Linux kernel's tools/include/nolibc (LGPL-2.1 OR MIT) of the pinned kernel
-  tree. The maintenance initramfs and boot/boot-ram-maintenance.img carry
-  unmodified Ubuntu 26.04 ARM64 binaries taken from the pinned desktop
-  SquashFS: sgdisk (gdisk, GPL-2.0), sfdisk (fdisk), lsblk, partx, blockdev
-  (util-linux) and their libraries (glibc, libstdc++/libgcc, libpopt,
-  ncurses, readline, libselinux, PCRE2, systemd's libudev), each with its
-  Debian copyright file in /usr/share/doc/<package>/copyright inside the
-  image; the corresponding sources are the Ubuntu source packages of those
-  binaries in the pinned desktop image (package names in its manifest,
-  versions in that image's dpkg status). Two kernel modules of the piano
-  kernel package (GPL-2.0) are included unchanged.
-
-initramfs/prepare-ubuntu and the Ubuntu hand-off in initramfs/init:
-  Adapted from initramfs/init-ncm in the same erhai commit (GPL-2.0-only).
-  Retains HTTP-to-RAM SquashFS, OverlayFS, switch_root, a temporary USB console,
-  and a systemd session-expiry timer. Omits persistent mounts, device-specific
-  probes, chunked-download workarounds and background restart loops. The host
-  explicitly releases a FIFO after its single-file HTTP service is ready;
-  a failed download/hash/mount stops preparation. The expiry timer has no
-  default dependencies so ordinary boot jobs cannot postpone its activation.
-  An explicit experimental NBD transport uses the existing BusyBox client and
-  a read-only QEMU NBD export; it is not the default or an automatic fallback.
-  Host SHA verification of a named export is not guest full-image verification.
-  Its QEMU handoff passed but the first piano block read failed; HTTP remains
-  the device-tested path. No NBD implementation is copied here.
-initramfs/ubuntu-state is new GPL-2.0-only read-only session diagnostics.
-
-No stock ROM, calibration, keys or device backups are distributed by this
-repository. Kernel and other dependencies retain their own licenses.
-
-firmware/ (all files in its subdirectories):
-  Unmodified stock firmware of the Xiaomi Pad 8 Pro (piano), build
-  OS3.0.303.0.WPYCNXM, from the modem_a and bluetooth_a FAT images and the
-  odm_a and vendor_a firmware directories; the six Wi-Fi files renamed to the
-  ath12k request names. Copyright belongs to the respective rights holders.
-  No redistribution license has been granted; the files are distributed for
-  interoperability and will be removed at a rights holder's request.
-  LicenseRef-Proprietary-Firmware: LICENSES/LicenseRef-Proprietary-Firmware.txt,
-  firmware/README.md and REUSE.toml. The project licenses do not cover them.
-  The firmware/piano-*.json locks and firmware/README.md are MIT.
-
-tools/build-boot.py and tools/prepare-boot-dtb.py:
-  Adapted from erhai commit e02d52ffc7859aba2b41a257b7a9dca73c9dbedb,
-  tools/build-mainline-boot.py and tools/build-erhai-abl-symbols.py.
-  License: GPL-2.0-only.
-  Changes: piano v2 container inputs, one RAM-only diagnostic profile, explicit
-  input paths and build identities; libfdt structured property APIs instead of
-  DTS text parsing; only the selected stock overlay's requested symbols are
-  isolated below a disabled parent. A real libufdt merge verifies that mainline
-  hardware properties stay intact. Runtime ABL behavior still needs device testing.
-  The piano RM primary-VM timer contract now exports arch_timer to the actual
-  mainline /timer node, separately from the isolated stock board symbols.
-
-tools/merge-desktop-tars.py:
-  Adapted from erhai commit e02d52ffc7859aba2b41a257b7a9dca73c9dbedb,
-  tools/overlay-merge-squashfs.py (GPL-2.0-only).
-  Changes: uncompressed sqfs2tar inputs with numeric owners and PAX xattrs;
-  inode whiteouts including hardlinked whiteouts, opaque directories, and
-  hardlink targets replaced by an upper layer; strip overlay bookkeeping;
-  explicitly preserve root inode metadata when invoking sqfstar.
-  Redirect/metacopy layers and root xattrs are rejected, not approximated.
-tools/test-merge-desktop-tars.py is new GPL-2.0-only regression coverage.
-
-tools/build-firmware-deb.py and tools/prepare-ubuntu-apt.py are new MIT-licensed tools.
-Firmware packaging follows the dpkg-deb --root-owner-group method used in
-liuqin commit 7df47f82f6e6ca5a04ab02fbcc4a3486c6a259be,
-tools/build-liuqin-debs.sh (MIT). No liuqin firmware, maintainer identity,
-device settings, diversions or installation scripts are copied.
-Neither this repository's license nor the generated package grants rights in
-the firmware it contains (see the firmware/ entry above).
-The APT helper uses native APT and python-debian/apt_pkg interfaces; Ubuntu
-package and repository signatures keep their original ownership and licenses.
-
-tools/build-kernel-deb.py is GPL-2.0-only. Its package layout (image in
-/boot, DTBs under /usr/lib/linux-image-<release>/) follows the upstream Linux
-scripts/package/builddeb of the pinned kernel source. The preinst/postinst/
-prerm/postrm scripts and the linux-update-<release> trigger interest are the
-Ubuntu 26.04 linux-image-7.0.0-14-generic (linux-signed 7.0.0-14.14) maintainer
-scripts as installed in the official Desktop image, with only the release
-substituted; Ubuntu kernel packaging is GPL-2.0. No Ubuntu kernel binaries,
-signing keys or flavour-specific hooks are copied.
-
-tools/build-ubuntu-ext4.py is new GPL-2.0-only integration around the existing
-GPL-2.0-only merge-desktop-tars.py implementation. It does not implement ext4:
-filesystem import, inode metadata and xattrs are handled by upstream e2fsprogs
-and libarchive under their own licenses. Neither utility is copied into this
-repository or installed on the build host by this tool.
-
-device/piano-thp/src/nvt_touch_core.{cpp,hpp},
-device/piano-thp/src/nvt_finger_filter.{cpp,hpp}, and processor.{cpp,hpp}:
-  Adapted from https://github.com/ianchb/xiaomi-sheng-thp
-  Source commit: 34046210932d654a4c0df0121ecc31c008f8148c
-  Original source paths: src/nvt_touch_core.{cpp,hpp},
-  src/nvt_finger_filter.{cpp,hpp}, and the LiveTouchAdapter class in
-  src/xiaomi_sheng_thp.cpp. Original author: ianchb.
-  License: Apache-2.0; full license in LICENSES/Apache-2.0.txt.
-  Changes: remove Sheng electrode maps and fixed coordinate dimensions;
-  require caller-provided calibration in the core and filter; use bounded
-  arithmetic for weighted coordinates/edge mapping; extract only the finger
-  adapter without pen, Bluetooth, SSC or Android dependencies.
-  Remaining algorithm/filter tuning is inherited and requires piano gesture
-  validation. Reference-device calibration is not supplied as a fallback.
-
-device/piano-thp/src/{frame,calibration,panel,replay,orientation}.*, tests/calibration.cpp,
-device/piano-thp/Makefile and tools/extract-thp-calibration.py are new MIT code.
-The BOE panel orientation in src/orientation.hpp (processor Y not reversed)
-follows https://github.com/liisoya/xiaomipad-8pro-mainline commit
-8bbc68239c17fe11419e84a3e1ae30a95e1d5f31 by Liisoya, MIT, whose "flip-y"
-panel_transform applies no flip and was tested on a BOE unit. Only that result
-is used: the panel comes from the kernel, no transform option or contact log
-is imported.
-The packet description is informed by the piano source in
-https://github.com/MiCode/vendor_xiaomi_proprietary_touch-driver
-commit 6957f6b646d1c919e175e6f9000eb50c8635273c, p81/nt36532/nt36xxx.c,
-and device-supplied records. No proprietary algorithm/library or firmware is
-included. Extracted electrode calibration remains user-supplied private data.
-The nlohmann JSON library is an external MIT-licensed build dependency, not
-vendored in this repository; its notices must accompany redistributed binaries.
-
-device/piano-thp/src/{stream,input,live_pipeline}.{cpp,hpp} and live.cpp:
-  Adapted from StreamReader, UInputTouch and the finger event lifecycle in
-  src/xiaomi_sheng_thp.cpp of the same ianchb source commit listed above.
-  License: Apache-2.0.
-  Changes: bounded incremental NTP1 framing; explicit calibration/device paths;
-  packet, sequence, epoch and CLOCK_BOOTTIME handling; release stale contacts
-  without treating pen traffic as fingers; no reference-panel axis inversion
-  or dimensions (the piano panel transform is the new MIT src/orientation.hpp);
-  dynamically sized event storage; bounded, collision-free
-  uinput tracking IDs; constructor/exit cleanup and opt-in private recording.
-  No firmware mode controls, pen/Bluetooth/SSC or Android compatibility layer.
-device/piano-thp/tests/{live,uinput}.cpp are new MIT test code. Synthetic
-contacts and virtual-machine input tests do not establish hardware support.
-
-mesa/piano-fixes.patch:
-  Minimal modification of the MIT-licensed Mesa src/freedreno/common/freedreno_devices.py
-  at upstream mesa-26.2.0, commit 9f0a761020bca92f2b07156a0621e5360cb8eca5.
-  Source: https://gitlab.freedesktop.org/mesa/mesa.git
-  Uses the existing Mesa wildcard fuse-ID convention for A830 revision 1.
-  Reference: ROCKNIX distribution snapshot 92a6fca6afda5ab7e1874af8985095beee19b6a8,
-  projects/ROCKNIX/packages/graphics/mesa/patches/SM8750/0001-add-a830-chip-id.patch.
-  No Mesa source tree, firmware, calibration or unrelated ROCKNIX changes are copied.
-  Also fixes shared-context publication in the MIT-licensed
-  src/mesa/main/context.c and src/mesa/state_tracker/st_context.c: a context
-  enters Shared->Contexts only after its state tracker is initialized.
-  Normal teardown also handles an unpublished context after creation failure.
-  This local fix is not represented as an accepted upstream commit.
-  The upstream source retains its original per-file authors and licenses.
-  tools/build-mesa.sh, mesa/check-device.c, mesa/egl-smoke.c and
-  mesa/shared-context-stress.c are new MIT tools.
-
-device/sensors/hexagonrpc/:
-  Upstream: https://github.com/linux-msm/hexagonrpc.git
-  Base commit: 598b591ae9da6a6cfe2ca5ea78998019ca6395ea (0.5.0).
-  Patch 0001 modifies libhexagonrpc/hexagonrpc.c (LGPL-3.0-or-later), extends
-  tests/meson.build and adds a GPL-3.0-or-later wire regression using the ioctl
-  substitution method of tests/test_hexagonrpc.c (2025 HexagonRPC Contributors).
-  Patch 0002 modifies hexagonrpcd/iobuffer.c (2023 Sensor Shell Contributors,
-  GPL-3.0-or-later) and tests/test_hexagonrpc.c (GPL-3.0-or-later).
-  Preserve the upstream per-file license and author notices. The public API
-  header is GPL-3.0-or-later; these components are not relabeled as MIT.
-  Source and patches are built through upstream Meson. No DSP code, device
-  calibration, credentials or firmware bytes are copied or redistributed.
-  License texts: LICENSES/hexagonrpc-GPL-3.0.txt and LICENSES/LGPL-3.0.txt.
-
-tools/firmware_payload.py and tools/stage-firmware.py:
-  MIT. Shared lock validation and staging for tools/build-firmware-deb.py,
-  native package recipes and initramfs assembly, applied to the firmware/
-  tree or an owner-supplied tree. The tools contain no firmware bytes.
-
-device/sensors/libssc/patches/0001-propagate-test-process-exit-status.patch:
-  Upstream: https://codeberg.org/DylanVanAssche/libssc.git
-  Base commit: 54dd13e36d65c21263cf5b0f4a70c230a77b26bc (0.4.4).
-  One-line change to mocking/ssc_server/ssc-server.in, GPL-3.0-or-later,
-  Copyright (C) 2022-2026 Dylan Van Assche. Retain its original notices.
-  Only test process status propagation changes; no sensor data or firmware.
-  GPL v3 text is already retained as LICENSES/hexagonrpc-GPL-3.0.txt.
-
-device/audio/Piano-Capture-Diag.m4:
-  Derived from linux-msm/audioreach-topology SM8550-HDK.m4, commit
-  2af1f1ebb8d4fd03b5f53891467ddde2e208a8a0, Copyright Linaro Ltd, 2023,
-  BSD-3-Clause. Retains the VA_CODEC_DMA_TX_0 capture device subgraph with one
-  two-channel MultiMedia3 capture stream; playback, the TX3 backend, secondary
-  capture and other devices are omitted. The upstream macro library
-  is consumed from its pinned checkout, not copied here.
-  License: LICENSES/audioreach-BSD-3-Clause.txt. No proprietary firmware.
-
-device/audio/Xiaomi-Pad-8-Pro.m4 and device/audio/piano/:
-  Derived from linux-msm/audioreach-topology, commit
-  2af1f1ebb8d4fd03b5f53891467ddde2e208a8a0 (SM8550-HDK.m4, module_i2s.m4,
-  subgraph-device-i2s-playback.m4), Copyright Linaro Ltd, 2023, BSD-3-Clause,
-  and from blu-sharky/debian-piano, commit
-  a75f8c5d5fa099d65c171ac839c2e3bb6c63ec45, topology/Xiaomi-Pad-8-Pro.m4 and
-  topology/piano/{module_tdm,subgraph-device-tdm-playback}.m4, SPDX
-  BSD-3-Clause, Copyright (c) 2026 bluseliu50 and piano mainline contributors.
-  Changes: upstream token names, no DSP volume module, capture part as
-  Piano-Capture-Diag.m4; piano/subgraph-stream-playback.m4 is upstream's
-  audioreach/subgraph-stream-playback.m4 with the WR_SH output port 1 instead of 0. License: LICENSES/audioreach-BSD-3-Clause.txt. No
-  proprietary firmware; the amplifier preset is not part of the topology.
-
-device/audio/ucm2/:
-  Adapted from blu-sharky/debian-piano, commit
-  a75f8c5d5fa099d65c171ac839c2e3bb6c63ec45,
-  rootfs/overlay/usr/share/alsa/ucm2/Qualcomm/sm8750/Xiaomi-Pad-8-Pro/
-  (HiFi.conf, Xiaomi-Pad-8-Pro.conf), Copyright (c) 2026 bluseliu50 and piano
-  mainline contributors, MIT (LICENSES/debian-piano-MIT.txt); and from
-  alsa-project/alsa-ucm-conf, commit d260eedd1900dbf3b477047e048d5382a5f50e24,
-  ucm2/Qualcomm/sm8750/MTP/ and ucm2/codecs/qcom-lpass/va-macro/DMIC0*Seq.conf,
-  Copyright (c) 2019 Advanced Linux Sound Architecture (ALSA) project,
-  BSD-3-Clause (LICENSES/alsa-ucm-conf-BSD-3-Clause.txt).
-  Changes: card long name Xiaomi-Pad-8-Pro; the speaker device sets fixed,
-  capped amplifier gains and four channels; two capture channels with VA DEC0
-  <- DMIC0 and DEC1 <- DMIC2 taken from piano's stock mixer instead of the
-  source files' single DMIC; no stock gain, calibration or other device's
-  values.
-
-tools/kernel_modules.py and tools/stage-kernel-modules.py:
-  GPL-2.0-only. Receipt validation is extracted from tools/build-kernel-deb.py;
-  native packaging and plain module-subset staging share that implementation.
-  Dependency resolution uses kmod rather than a separate resolver. No kernel
-  driver source, device firmware or calibration is copied here.
-
-initramfs/piano-modules, tools/prepare-module-initramfs.py and
-new subset/runtime helpers in tools/kernel_modules.py:
-  GPL-2.0-only. Explicit RAM diagnostic delivery using the existing Kbuild/kmod
-  subset receipt and pinned BusyBox. No independent module dependency resolver.
-
-tools/initramfs_archive.py:
-  GPL-2.0-only. Single-newc reader derived from this repository's diagnostic
-  test reader, extended to validate record boundaries, paths and file types.
-  Scope is the RAM builder format, not general cpio or distribution initrd support.
-
-ubuntu/systemd/worker-cap.patch:
-  Upstream systemd commit 181a9f65a7cf9059da0f2a44e2152d7636446b33,
-  authored by Daan De Meyer. The diff is unchanged; its source file
-  src/udev/udev-manager.c is GPL-2.0-or-later. Source inputs and SHA-256 values
-  are pinned in ubuntu/systemd/source.json. This is an Ubuntu source-package
-  override preparation, not an installed binary or a separate udev service.
-  License text: LICENSES/systemd-GPL-2.0-or-later.txt, from the authenticated
-  systemd source's LICENSE.GPL2.
-
-packaging/piano-ubuntu-desktop/usr/share/gnome-shell/extensions/piano-osk-guard@io.github.piano/:
-  New GNOME Shell 50 extension, GPL-2.0-or-later like the GNOME Shell code it
-  wraps (js/ui/keyboard.js KeyboardManager.maybeHandleEvent() of gnome-shell
-  50.1, Ubuntu 50.1-0ubuntu1.3). It copies no GNOME Shell code; the original
-  method is called unchanged when the event has an actor. GNOME Shell 51
-  removed the method in commit 5e5b0f49d35ae2c1626eb2ee386befb608a8d5e4.
-  tools/test-gnome-osk-guard.py (GPL-2.0-or-later) reads that method from a
-  caller-supplied, verified source tree at run time and does not store it.
-  License text: the GNU GPL version 2 in LICENSES/GPL-2.0-only.txt; "or later"
-  follows the SPDX headers.
-
-TinyALSA RAM mixer diagnostic
-- Upstream: https://github.com/tinyalsa/tinyalsa.git
-- Commit: 961babfe962e71d952ae734074cc89576b28a9e7
-- Uses upstream src/ and utils/tinymix.c through their original Makefiles,
-  with no source patch. The generated binary is not stored in this repository.
-- Copyright 2011 The Android Open Source Project; copyright 2019 The Linux
-  Foundation and the per-file upstream authors. BSD-3-Clause; full text is in
-  LICENSES/tinyalsa-BSD-3-Clause.txt. The wrapper is MIT; the compiler runtime
-  retains its own license.
-- The upstream utils/optparse.h dependency carries its public-domain dedication;
-  it remains unmodified in the source checkout used for the build.
-
-QRTR nameservice lookup diagnostic
-- Upstream: https://github.com/linux-msm/qrtr.git
-- Commit: 29e36ae164389580a0f8ea7a7fdb728140ae978d
-- Uses upstream src/lookup.c, lib/ and include/ through the original Meson
-  targets, without source patches. No daemon or prebuilt executable is shipped.
-- Copyright 2015 Sony Mobile Communications Inc. and per-file upstream authors.
-  BSD-3-Clause; license text is in LICENSES/qrtr-BSD-3-Clause.txt. The build
-  wrapper is MIT; the compiler runtime retains its own license.
-
-SensorProxy SSC startup and availability
-- Upstream iio-sensor-proxy: https://gitlab.freedesktop.org/hadess/iio-sensor-proxy.git
-  at 0085ddf8ecb173a1c5fcf2344aa40e561125354f.
-- The unchanged coldplug, serialized SSC accelerometer polling, pending-claim cancellation and availability patches in
-  device/sensors/libssc/sensorproxy-patches/ are reused from the independent
-  liuqin integration snapshot 7df47f82f6e6ca5a04ab02fbcc4a3486c6a259be,
-  device/sensors/patches/0003-iio-sensor-proxy-start-preclaimed-coldplug-sensor.patch
-  0004-iio-sensor-proxy-serialize-ssc-accel-polling.patch,
-  0005-iio-sensor-proxy-cancel-released-pending-claims.patch and
-  0006-iio-sensor-proxy-broadcast-sensor-availability.patch.
-  Original patch author headers are retained; the snapshot commit, not a
-  synthetic mail header hash, identifies the source. No board parameters,
-  sensor matrix, firmware, service policy or dependency on that workspace is copied.
-- The modified upstream src/iio-sensor-proxy.c and src/drv-ssc-accel.c are GPL-3.0-only, copyright
-  2014-2016 Bastien Nocera. License text: LICENSES/hexagonrpc-GPL-3.0.txt.
-- The local discovery-notification regression patch modifies tests/ssc-test.py,
-  retaining its GPL-2.0-or-later notices and upstream authors (Martin Pitt and
-  Bastien Nocera). License text: LICENSES/systemd-GPL-2.0-or-later.txt.
-  It waits for the existing capability event, preserves functional assertions,
-  and checks that unclaimed broadcasts contain no readings.
-
-tools/build-persistent-boot.py:
-  Adapted from the independent local erhai integration repository,
-  tools/build-mainline-gki.py at 91128256d7e09f2026e160665fba7bed1a6e0f3b and
-  tools/sign-boot-triplet.py at b4cc2c74a6fcb1ab18979b496839848931e7540b.
-  License: GPL-2.0-only. Changes: explicit piano stock geometry and rollback
-  input, distro initrd/root PARTUUID, private local Bluetooth address injection,
-  v2 RAM root check and v4 triplet; no disk/device operations or old workspace
-  dependencies. Self-signed footers provide unlocked-ABL compatibility, not a
-  claim of an OEM verified-boot trust chain.
-
-device/boot/piano-slot-success and device/boot/piano_bootslot.py:
-  The GPT validation and slot-A success marking are adapted from the liuqin
-  mainline project.
-  Repository: https://github.com/yzddmr6/xiaomipad-6pro-mainline
-  Source commit: 265b26fb268809167cfc45e3071e6956d735e1bb (the file was last
-  changed in fb4413f; clean checkout)
-  Source path: device/boot/liuqin-mark-slot-successful.c
-  License: MIT; full original notice in LICENSES/liuqin-MIT.txt.
-  Changes: Python rewrite; GPT locations are read from both headers and
-  cross-checked instead of pinned device geometry; the boot LUN is found by
-  its boot_a/boot_b entries below the piano UFS controller, never by sdX name;
-  a damaged or differing backup copy is refused instead of being rebuilt from
-  the primary; only bit 54 is set, bit 55 is never cleared and an unbootable
-  slot or retry count 0 is refused; the boot must come from the slot image and
-  the slot must hold a registered image set; the written GPT is compared byte
-  for byte with the single-bit change. Unit ordering after boot-complete.target
-  follows Debian's qbootctl.service; no qbootctl code is used.
-packaging/piano-device-support/ files with a GPL-2.0-only header (piano-boot-update,
-the etc/kernel and etc/initramfs zz-piano-boot hooks, the dracut module 99piano and
-usr/libexec/piano/debug-*):
-  New code written for this project (first in ec551c5). GPL-2.0-only to match the
-  GPL-2.0-only boot builder (tools/build-persistent-boot.py) and initramfs USB
-  console (initramfs/usb-diag) they run or reuse; a line comparison with the erhai
-  integration tree finds only boilerplate in common. The other packaging files
-  are MIT.
-
-device/boot/tests/ is new test code with synthetic disks and images only: MIT,
-except test_boot_update.py, GPL-2.0-only like the piano-boot-update hook it tests.
-packaging/piano-device-support/usr/share/polkit-1/actions/io.github.piano.switch.policy:
-  The single-action structure (exec.path plus exec.argv1 selecting one
-  subcommand for the desktop entry) follows device/gnome-overlay/usr/share/
-  polkit-1/actions/io.github.liuqin.switch.policy of the same liuqin commit
-  (MIT). Changes: piano program path and texts, auth_admin_keep.
-
-Mozilla Firefox in generated root images:
-  ubuntu/firefox/source.json records the official Mozilla APT repository,
-  upstream version/source URL, package and signing-key hashes, and provenance
-  of the integration policy (MIT). InRelease and Packages are the unmodified
-  signed repository metadata authenticated by that key. The downloaded Firefox
-  binary is unmodified, by Mozilla and contributors, under MPL-2.0 and the
-  bundled third-party licences; see the package's copyright notices.
-
-Root-image build scripts:
-  tools/rootfs-image-steps.sh, rootfs-image-guest.sh, rootfs-image-chroot.sh
-  and tools/rootfs-native-chroot.sh are MIT code by yzddmr6.
-  tools/rootfs-native-chroot.sh: native ARM64 root only, private namespaces, no host-specific sudo
-  grant or qemu-user, one invocation owns and cleans all mounts; chroot output
-  uses a waited tee pipeline so no log follower retains dev/pts on exit.
-  ubuntu/desktop-layers.json records the official Ubuntu inputs and original
-  merge hashes; ubuntu/boot-profile.json is the address-free stock-build
-  profile already included in the v0.1.0-preview release, with no unit data.
-
-Third-party files placed in locally generated packages (tools/build-device-debs.py):
-  piano-device-support copies tools that this repository does not contain:
-  - mkbootimg.py and gki/ (tests excluded) from the AOSP checkout fetched by
-    tools/fetch-aosp-mkbootimg.sh (platform/system/tools/mkbootimg at
-    954bc3ead5e679005fddf3484d247f2557b3c2c9); Apache-2.0 per-file headers,
-    Copyright The Android Open Source Project.
-  - avbtool.py, supplied by the caller through --avbtool. AOSP external/avb,
-    Copyright 2016 The Android Open Source Project, MIT notice in the file
-    header. This repository does not yet pin or fetch this input.
-  - the BusyBox binary supplied through --busybox (see
-    tools/fetch-busybox-arm64.sh); a GPL-2.0 Ubuntu package with its own
-    source availability.
-  - the piano-thp-live binary built from device/piano-thp (Apache-2.0 and MIT
-    sources listed above, plus the external MIT nlohmann JSON headers).
-  piano-mesa contains a Mesa build (MIT and other per-file upstream licenses).
-  Each generated package carries /usr/share/doc/<package>/copyright
-  (machine-readable, one paragraph per licence and per third-party file set,
-  with the licence texts or their /usr/share/common-licenses names) and a copy
-  of this NOTICE. The BusyBox binary is unmodified Ubuntu busybox-static; its
-  corresponding source is the Ubuntu busybox source package of the same version.
-  Packages built before this change lack these files.
-
-Mesa core24 provider build tools
+Integration build and boot tools
 -------------------------------
-Adapted from onepluspad-2pro-mainline commit 70588c971d260b0d0955242f226791725664c8b1,
-author yzddmr6. The imported files retain GPL-2.0-only (not this repository MIT);
-see mesa/snap/provenance.json and LICENSES/oneplus-mesa-tools-GPL-2.0-only.txt.
-Mesa source and A830 patch are shared with the desktop lock in mesa/source.json.
+Source: integration source snapshots at the commits below. A public URL for
+these snapshots was not recorded; no public availability of those commits is
+asserted. Original source paths and licence notices are retained here.
+License: GPL-2.0-only; LICENSES/GPL-2.0-only.txt.
+Files and changes:
+- device/platform/piano-physical-platform: from commit
+  8f41f82dd431a4d74f2dc26f4e19f10c3b208623,
+  packaging/erhai-device-support/tree/usr/libexec/erhai-physical-platform.
+  Adaptation: piano identity and HLOS VMID=3, OF-node matching and RAM handoff.
+- tools/build-kernel.sh, tools/build-initramfs.sh, initramfs/init and
+  initramfs/usb-diag (originally usb-acm): from commit
+  e02d52ffc7859aba2b41a257b7a9dca73c9dbedb, with the same source paths.
+  Adaptation: pinned piano inputs and DTB targets, bounded diagnostic reboot,
+  ordered release fragments and configuration-only builds.
+- initramfs/usb-ncm and initramfs/prepare-ubuntu: from usb-ncm and init-ncm
+  of that same snapshot. Adaptation: piano network settings, shared gadget
+  setup, HTTP-to-RAM handoff and explicit experimental read-only NBD transport.
+- tools/build-boot.py and tools/prepare-boot-dtb.py: from
+  tools/build-mainline-boot.py and tools/build-erhai-abl-symbols.py in the same
+  snapshot. Adaptation: piano stock geometry, explicit inputs, libfdt APIs,
+  isolated stock overlay symbols and mainline /timer export.
+- tools/merge-desktop-tars.py: from tools/overlay-merge-squashfs.py in the same
+  snapshot. Adaptation: uncompressed sqfs2tar input, numeric ownership, PAX
+  xattrs, whiteouts and inode metadata; tools/test-merge-desktop-tars.py is new.
+- tools/build-persistent-boot.py: from tools/build-mainline-gki.py at
+  91128256d7e09f2026e160665fba7bed1a6e0f3b and tools/sign-boot-triplet.py at
+  b4cc2c74a6fcb1ab18979b496839848931e7540b. Adaptation: explicit stock geometry,
+  distro initrd, root identifiers, optional per-unit inputs and v2/v4 containers.
 
-GNOME desktop-drive diagnostic tool
-----------------------------------
-tools/piano-desktop-drive.py adapts the Gio session-call helper, GetWindows and
-Mutter RemoteDesktop Notify* input logic from onepluspad-2pro-mainline:
-  tools/gpu-app-coverage-probe.py at 43d38623312ee4d2edc4d2660c06ae0c25bcd5cf
-  (SHA-256 cbf0752b9075ec2d4f600f6955e3e4e212fffb19dcc66ec8fffaaabb35b0487d)
-  tools/gpu-desktop-probe.py at cdb808739d7f7048234fe4a306bc72d2b9ac60e2
-  (SHA-256 a51d5b34ad11d4bbe316dd9b18a6e171d0deaced6548e2254a7efd05676cc422)
-Original author Erwin; GPL-2.0-only, retained by the adapted file. The licence
-text is already in LICENSES/oneplus-mesa-tools-GPL-2.0-only.txt.
-Changes: connect to the logged-in uid's bus, use the screenshot portal's
-noninteractive permission-store flow, link ScreenCast for absolute/touch
-coordinates, provide a command-line interface and bounded resource cleanup.
-There is no runtime dependency on the source workspace.
+Xiaomi Pad 6 Pro integration sources
+-----------------------------------
+Source: https://github.com/yzddmr6/xiaomipad-6pro-mainline
+Snapshot: 7df47f82f6e6ca5a04ab02fbcc4a3486c6a259be; this snapshot commit is not
+assumed to be available on the public remote.
+License: MIT; full original notice in LICENSES/liuqin-MIT.txt.
+Files and changes:
+- tools/fetch-aosp-mkbootimg.sh, same source path: use Git for the pinned AOSP
+  checkout, retain source hashes and reject modified checkouts.
+- tools/fetch-busybox-arm64.sh, same source path: HTTPS Ubuntu Ports and
+  explicit download/extraction directories.
+- tools/prepare-ubuntu-desktop.sh: from tools/build-liuqin-ubuntu-desktop-rootfs.sh;
+  preserve the ISO/layer identities and limit it to unprivileged extraction.
+- tools/build-firmware-deb.py: packaging method follows tools/build-liuqin-debs.sh
+  (dpkg-deb --root-owner-group); firmware and device configuration are separate.
+- device/boot/piano-slot-success and piano_bootslot.py: from
+  device/boot/liuqin-mark-slot-successful.c at
+  265b26fb268809167cfc45e3071e6956d735e1bb (last file change fb4413f).
+  Adaptation: Python, GPT-derived geometry, piano UFS matching, both-copy
+  validation, registered image sets and a single successful-bit change.
+  Service ordering follows Debian qbootctl.service; no qbootctl code is copied.
+- packaging/piano-device-support/usr/share/polkit-1/actions/io.github.piano.switch.policy:
+  structure follows device/gnome-overlay/usr/share/polkit-1/actions/io.github.liuqin.switch.policy
+  of that slot-success snapshot; piano paths/text and auth_admin_keep.
 
-Stock mesa-2404 content used by the piano provider
-------------------------------------------------
-The complete ARM64 mesa-2404 revision 1166 (25.0.7-snap211), published by
-Canonical, is the runtime base; https://github.com/canonical/mesa-2404.
-Its SHA-256, seed location, embedded source/manifest hashes and MIT snap licence
-are recorded in mesa/snap/mesa-2404.json. The aggregate contains libraries under
-their own licences; all original usr/share/doc/*/copyright notices are retained.
-Only the pinned piano Mesa payload is overlaid; the Canonical wrapper, component
-hooks and non-Mesa files are unchanged. Snap metadata changes only name/version.
-The superseded imported minimal wrapper is no longer shipped.
+AOSP boot tools and BusyBox
+--------------------------
+Files: external inputs copied by tools/build-device-debs.py into generated
+piano-device-support packages; upstream source files are not vendored here.
+- mkbootimg.py and gki/ (excluding tests):
+  https://android.googlesource.com/platform/system/tools/mkbootimg
+  at 954bc3ead5e679005fddf3484d247f2557b3c2c9. Apache-2.0, The Android Open
+  Source Project. Fetch/check: tools/fetch-aosp-mkbootimg.sh. Unmodified.
+- avbtool.py: https://android.googlesource.com/platform/external/avb
+  at 5ac0c3a071d811846a62412383dd6e259f341e6e, android-16.0.0_r1,
+  avbtool 1.3.0. MIT, Copyright 2016 The Android Open Source Project.
+  SHA-256: e5a664a38db623da00f080219bc0ee60a640a9dc4a872803616fae4938ac749b.
+  Lock: tools/aosp-avb.json; fetch/check: tools/fetch-aosp-avb.sh.
+  Unmodified; the package builder checks the lock and preserves its MIT header.
+- BusyBox: unmodified Ubuntu busybox-static ARM64 package, GPL-2.0.
+  Binary/source package identities: tools/fetch-busybox-arm64.sh. Corresponding
+  source is the Ubuntu busybox source package of the same version.
+Each generated package carries /usr/share/doc/<package>/copyright and this
+NOTICE, preserving per-file licence texts or /usr/share/common-licenses links.
 
-Keyboard integration (device/keyboard)
-------------------------------------
-The kernel imports blu-sharky/linux-piano f8afe7ff7127f46f5339fdaf5c24ecbffbfbb92b
-(GPL-2.0-only, map220v, ianchb, bluseliu50); its implementation remains solely in
-the kernel repository. Community debian-piano a75f8c5d5fa099d65c171ac839c2e3bb6c63ec45
-keyboard overlay/service were reviewed, not copied: standard udev OF autoload
-makes their manual module startup unnecessary. See device/keyboard/README.md.
-MiPPS authentication: device/power/mipps-auth/upstream/xiaomi-mipps-auth is
-from blu-sharky/piano-mipps-auth ccdc3ce7f5200ef736d7d552eb7b387ea3bb6fd9,
-a fork of ianchb/xiaomi-mipps-auth (base 9176efbdf276b874fc0a97912a914449a88155fb).
-Authors: ianchb <i@4t.pw>, bluseliu50
-<265648257+bluseliu50@users.noreply.github.com>. Script SPDX: GPL-2.0-only.
-No root LICENSE was supplied; this import includes only the explicitly
-licensed script. Local patch, hashes and exit condition: source.json in that
-directory. The systemd/udev packaging here is project MIT integration.
+Kernel packaging and maintenance initramfs
+-----------------------------------------
+Files: tools/build-kernel-deb.py; GPL-2.0-only.
+Source: scripts/package/builddeb in the kernel pinned by kernel/source.json,
+https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+and Ubuntu 26.04 linux-image-7.0.0-14-generic (linux-signed 7.0.0-14.14).
+Changes: upstream image/DTB layout; Ubuntu preinst/postinst/prerm/postrm and
+linux-update-<release> trigger with the release substituted. No Ubuntu kernel
+binary, signing key or flavour-specific hook is copied.
 
-HexagonRPC registry file service
-- device/sensors/hexagonrpc/patches/0003-serve-odm-and-explicit-scratch-registry.patch
-  extends linux-msm/hexagonrpc 598b591ae9da6a6cfe2ca5ea78998019ca6395ea
-  in its original GPL-3.0-or-later files and adds a GPL-3.0-or-later regression.
-- Protocol reference: Luca Weiss, linux-msm/hexagonrpc PR #21,
-  https://github.com/linux-msm/hexagonrpc/pull/21, pinned head
-  9f987970f9bc3e72081b7966a1f4e766ce6af6f7, methods 5/24. The implementation
-  performs actual confined file I/O and does not import the PR's fake-success
-  write/remove or unverified fd-method stubs.
-- ABI checked against Qualcomm fastrpc v1.0.7 inc/apps_std.h and
-  src/apps_std_imp.c (https://github.com/qualcomm/fastrpc/tree/v1.0.7).
-  Those files were references, not bundled code.
-- Reviewed liuqin 7df47f82 registry version/property patches and upstream SDM845
-  file-layout examples; no board data or property shim imported. Reviewed
-  blu-sharky/piano-sensors 65a92202db65ad13493b43fbf15d6abb3b7bcf92's
-  ODM/persist-copy design; no Qualcomm adsprpcd or product services imported.
+initramfs/piano-maint, initramfs/restart2.c and tools/prepare-maintenance-payload.py
+are project GPL-2.0-only. restart2.c uses tools/include/nolibc from the pinned
+Linux source (LGPL-2.1 OR MIT). Generated maintenance images contain unmodified
+Ubuntu gdisk, util-linux and libraries (glibc, libstdc++/libgcc, libpopt, ncurses,
+readline, libselinux, PCRE2 and systemd libudev), with their Debian copyright
+files. Package versions are recorded in the image's dpkg status and manifest;
+corresponding sources are the matching Ubuntu source packages. The image's two
+kernel modules come from the matching kernel package (GPL-2.0).
 
-HexagonRPC registry parent mapping
-- 0004-map-complete-registry-parent.patch extends the same GPL-3.0-or-later
-  HexagonRPC files/tests for the stock file-request pattern. It moves the
-  mapping to the complete parent without weakening write confinement. No
-  third-party board values or fabricated stock files are added.
+Project GPL-2.0-only helpers: tools/kernel_modules.py, stage-kernel-modules.py,
+prepare-module-initramfs.py, initramfs/piano-modules, tools/initramfs_archive.py,
+tools/build-ubuntu-ext4.py, initramfs/ubuntu-state, and the marked boot/update,
+dracut and debug hooks under packaging/piano-device-support/. They reuse the
+project's boot/module/archive code. e2fsprogs and libarchive remain external
+utilities under their own licences. Other package integration is MIT;
+device/boot/tests/test_boot_update.py is GPL-2.0-only and the other boot tests MIT.
 
-HexagonRPC large reverse-listener requests
-- Unchanged upstream patch: linux-msm/hexagonrpc
-  f0dfd5095d3b7defc3b368f227337bfc6d6aef42, Fady <me@fadyackad.dev>,
-  2026-09-19, from https://github.com/linux-msm/hexagonrpc/pull/27.
-  Original author/date/Signed-off-by are retained in patch 0005. License:
-  GPL-3.0-or-later, per the original listener and interface file headers.
-- Local patch 0006 adds validation/cleanup and GPL-3.0-or-later regressions.
-  Its empty-reply sizing correction follows the same upstream PR's
-  40e50412812adce9dddc2be9a4510ebce05eef89 iobuffer correction.
-  ABI/required-length reference: Qualcomm fastrpc v1.0.7,
-  inc/adsp_listener.h and src/listener_android.c. No Qualcomm code bundled.
+Ubuntu base and Firefox
+-----------------------
+Sources: official Ubuntu 26.04 Desktop ARM64 layers, ubuntu/desktop-layers.json
+and ubuntu/26.04.sources; package versions and signed snapshot inputs are
+recorded by tools/prepare-ubuntu-apt.py. Original package licences are retained.
+Files: tools/rootfs-image-steps.sh, rootfs-image-guest.sh, rootfs-image-chroot.sh,
+rootfs-native-chroot.sh and prepare-ubuntu-apt.py are project MIT integration.
+Changes: image assembly, package installation and boot-set construction;
+Ubuntu binaries retain their original copyright files.
 
-Sensor registry frename
-- Local patch 0007-implement-frename-in-the-writable-registry.patch extends the
-  same GPL-3.0-or-later HexagonRPC files and tests with apps_std method 33,
-  frename, confined to the explicit writable registry copy.
-  ABI reference: Qualcomm fastrpc v1.0.7, inc/apps_std.h, src/apps_std_skel.c
-  and src/apps_std_imp.c (rename(2)). No Qualcomm code bundled.
+Firefox: the official unmodified Mozilla ARM64 deb, MPL-2.0 and bundled
+third-party licences. ubuntu/firefox/source.json records the repository,
+source/version, binary hash, signing key and MIT integration policy.
+Signed InRelease/Packages metadata remains unmodified.
 
-Piano sensor packages (2026-10-12)
----------------------------------
-- firmware/sensors/: 66 static ODM/vendor sensor configuration files from piano
-  OS3.0.303.0.WPYCNXM. Source paths and SHA256 in firmware/sensors/source.json.
-  Unmodified stock bytes; no persist registry or per-device factory calibration.
-  Proprietary, no redistribution licence established; distributed by owner
-  decision under the firmware policy and removed on rightsholder request.
-- piano-sensors consumes the existing hexagonrpc source lock and all patches,
-  including the unchanged upstream large-listener-input commit f0dfd5095d3b.
-- piano-iio-sensor-proxy consumes the existing libssc and SensorProxy source
-  locks/patches. Protocol and library sources retain their GPL licences; only
-  package/service/udev integration and registry staging are project MIT code.
-- tools/build-sensors-debs.py preserves upstream Meson builds and records
-  sources/tool versions/hashes; no third-party source is rebranded as original.
-device/bluetooth/bluetooth-address.py:
-  Imported from slwyts/Project-SunUEFI, commit
-  6a8763d010adb00b18911d6d12e6dd02869f98b9 (2026-10-10),
-  linux/bsp/common/usr/lib/piano/bluetooth-address.py, author slwyts, MIT.
-  Source: https://github.com/slwyts/Project-SunUEFI
-  Changes: use the already provisioned /etc/piano/bluetooth-address file,
-  match piano's qcom,wcn7860-bt, omit persist mounts and derived identities,
-  and decode MGMT command-status as opcode followed by status.
-  An ExecStartPre in the distribution's bluetooth.service runs this bounded
-  helper. Existing configured controllers and their addresses stay unchanged.
-  No additional resident radio manager, boot-image dependency or service.
-  device/bluetooth/test_address.py is new MIT test code.
+Stock firmware and sensor configuration
+---------------------------------------
+Source: Xiaomi Pad 8 Pro OS3.0.303.0.WPYCNXM, modem_a/bluetooth_a FAT images
+and odm_a/vendor_a files. Files, source paths and hashes: firmware/piano-*.json
+and firmware/sensors/source.json.
+Files: stock payloads identified in REUSE.toml, including the 66 static sensor
+configuration files. Project README and lock files are MIT metadata.
+License: LicenseRef-Proprietary-Firmware, respective vendor rights holders;
+see LICENSES/LicenseRef-Proprietary-Firmware.txt and firmware/README.md.
+Changes: stock bytes unchanged; six Wi-Fi files renamed for ath12k.
+The separate audio topologies below are built from source. tools/firmware_payload.py,
+stage-firmware.py and build-firmware-deb.py are project MIT packaging code.
 
-Camera: device/camera/piano-camerad.c was imported from
-blu-sharky/debian-piano a75f8c5 (fd6266d, 25babfe, 197c907), copyright
-2026 bluseliu50 and piano mainline contributors, MIT; see device/camera/LICENSE.
-The loopback options are from the same repository. v4l2loopback is built
-separately from pinned upstream v0.15.4, GPL-2.0-or-later; its COPYING is
-shipped with the matching-kernel module package. No camera firmware is added.
+Novatek touch userspace
+----------------------
+Source: https://github.com/ianchb/xiaomi-sheng-thp
+at 34046210932d654a4c0df0121ecc31c008f8148c, author ianchb.
+License: Apache-2.0; LICENSES/Apache-2.0.txt.
+Files: device/piano-thp/src/nvt_touch_core.{cpp,hpp}, nvt_finger_filter.{cpp,hpp},
+processor.{cpp,hpp}, stream/input/live_pipeline.{cpp,hpp} and live.cpp.
+Origins: upstream core/filter files and LiveTouchAdapter, StreamReader,
+UInputTouch and finger lifecycle in src/xiaomi_sheng_thp.cpp.
+Changes: caller-provided calibration, bounded arithmetic and framing, explicit
+paths, epoch/time handling, stale-contact release, collision-free tracking IDs,
+cleanup and opt-in recording; omit reference-panel maps, pen/SSC and Android code.
 
-Camera local changes are listed in device/camera/source.json, separately from
-the retained upstream source hash and author history.
+BOE orientation in src/orientation.hpp follows Liisoya's MIT piano flip-y
+transform at https://github.com/liisoya/xiaomipad-8pro-mainline
+commit 8bbc68239c17fe11419e84a3e1ae30a95e1d5f31.
+Protocol reference (no code imported):
+https://github.com/MiCode/vendor_xiaomi_proprietary_touch-driver
+6957f6b646d1c919e175e6f9000eb50c8635273c, p81/nt36532/nt36xxx.c.
+Frame/calibration/panel/replay/orientation helpers, Makefile, extraction tool
+and tests are project MIT. The external nlohmann JSON headers are MIT; their
+notices accompany binaries built with them.
 
-Mesa Turnip gen8 TEX_LINE_OFFSET backport: Rob Clark, 2026-08-31, MIT.
-Unmodified upstream commit 7ea5e51c8a301a15202e28fef114e4c4055bc329;
+Mesa desktop, Turnip and snap provider
+-------------------------------------
+Source: https://gitlab.freedesktop.org/mesa/mesa.git
+mesa-26.2.0, 9f0a761020bca92f2b07156a0621e5360cb8eca5; mesa/source.json.
+Files: mesa/piano-fixes.patch; MIT, Mesa contributors and project contributors.
+Changes: A830 revision-1 wildcard fuse ID in freedreno_devices.py, following
+ROCKNIX 92a6fca6afda5ab7e1874af8985095beee19b6a8,
+projects/ROCKNIX/packages/graphics/mesa/patches/SM8750/0001-add-a830-chip-id.patch;
+shared-context publication/teardown in src/mesa/main/context.c and
+src/mesa/state_tracker/st_context.c. The latter is a local fix.
+mesa/turnip-gen8-tex-line-offset.patch is unchanged upstream commit
+7ea5e51c8a301a15202e28fef114e4c4055bc329, Rob Clark, 2026-08-31, MIT:
 https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/44151
-See mesa/turnip-gen8-tex-line-offset.patch for original attribution.
+The build wrapper and mesa/{check-device,egl-smoke,shared-context-stress}.c
+are project MIT. Generated Mesa binaries retain all upstream per-file licences.
 
-Ubuntu power-button lock patches (2026-10-16)
--------------------------------------------
-- ubuntu/gnome-settings-daemon and ubuntu/gnome-control-center: patches to the
-  pinned Ubuntu GNOME 50 sources, GPL-2.0-or-later; COPYING in each directory.
-  Source versions, authenticated archive hashes and patch hashes are in their
-  source.json files. The original upstream files retain their own copyrights.
-- GSD enum adaptation credits Phoebe Harris, merge request !448, commit
-  b80693acdce2931550081b8d27550e19c9eed36d; blank-action design reference:
-  Cédric Bellegarde, merge request !320, commit
-  89f1042d9068ba5ea2f51fa846fcac148a490479. Patch headers retain attribution.
-  https://gitlab.gnome.org/GNOME/gnome-settings-daemon/-/merge_requests/448
-  https://gitlab.gnome.org/GNOME/gnome-settings-daemon/-/merge_requests/320
-- Rebuilt distribution binaries retain Ubuntu packaging and copyright files;
-  no binary, debug package or build-environment record is imported here.
+Provider tools: https://github.com/yzddmr6/onepluspad-2pro-mainline
+70588c971d260b0d0955242f226791725664c8b1, author yzddmr6; GPL-2.0-only.
+Imported files, original hashes and local changes: mesa/snap/provenance.json;
+licence: LICENSES/oneplus-mesa-tools-GPL-2.0-only.txt.
+Changes: piano paths, shared desktop Mesa lock, pinned core24 SDK, complete
+stock provider plus Mesa overlay, and verified package-only reuse.
 
-device/video/iris-vaapi (fetched source and license files):
-  https://github.com/phxinyang/qualcomm-iris-vaapi
-  Commit: f587b14e6b22955c7250a45ff5f43588bbce2114
-  Licenses: MIT and LGPL-2.1; see COPYING* in that directory.
-  Descended from mxsrc/libva-v4l2 and Bootlin libva-v4l2-request.
-  Kernel patches are not packaged here; they are maintained in the kernel
-  repository with Xilin Wu / Radxa attribution and GPL-2.0-only licensing.
+Runtime base: Canonical's ARM64 mesa-2404 revision 1166 (25.0.7-snap211),
+https://github.com/canonical/mesa-2404, locked in mesa/snap/mesa-2404.json.
+MIT snap recipe; embedded libraries retain their individual licences and
+usr/share/doc/*/copyright. Changes: overlay piano Mesa, change snap name/version,
+add provenance; retain Canonical wrapper, component hooks and non-Mesa files.
 
-Iris VA-API local client policy (MIT):
-  Withhold HEVC Main/Main10 from the official Chrome executable while retaining
-  Firefox HEVC, using AT_EXECFN without browser flags or sandbox changes.
-  Complete corresponding source is included inside piano-iris-vaapi debs.
+GNOME desktop diagnostic
+------------------------
+Files: tools/piano-desktop-drive.py; GPL-2.0-only.
+Source: https://github.com/yzddmr6/onepluspad-2pro-mainline
+- tools/gpu-app-coverage-probe.py at 43d38623312ee4d2edc4d2660c06ae0c25bcd5cf,
+  SHA-256 cbf0752b9075ec2d4f600f6955e3e4e212fffb19dcc66ec8fffaaabb35b0487d;
+- tools/gpu-desktop-probe.py at cdb808739d7f7048234fe4a306bc72d2b9ac60e2,
+  SHA-256 a51d5b34ad11d4bbe316dd9b18a6e171d0deaced6548e2254a7efd05676cc422.
+Original author: Erwin; retained in the source commits and imported file header.
+License: LICENSES/oneplus-mesa-tools-GPL-2.0-only.txt.
+Changes: current user's bus, screenshot portal, linked ScreenCast coordinates,
+command-line interface and bounded cleanup.
 
-Resources telemetry patches
----------------------------
-- Upstream: https://gitlab.gnome.org/GNOME/Incubator/resources (see apps/resources/source.json).
-- apps/resources/patches extends Resources under GPL-3.0-or-later; the
-  Ubuntu context adaptations in ubuntu/resources/backport.patch use the same license.
-- Resources copyright: ManicRobot, nokyan and Resources contributors.
-  Local changes: 2026 yzddmr6. License texts: apps/resources/COPYING and ubuntu/resources/COPYING.
-- Adreno chip ID/name mapping follows nvtop's extract_gpuinfo_msm_utils.c,
-  https://github.com/Syllo/nvtop/commit/71094a9f7dfbfe7cbe9faebfdf055e580a034283 (GPL-3.0-or-later).
+HexagonRPC
+----------
+Source: https://github.com/linux-msm/hexagonrpc.git
+598b591ae9da6a6cfe2ca5ea78998019ca6395ea (0.5.0).
+Files and hashes: device/sensors/hexagonrpc/source.json and patches/.
+Licenses: patch 0001 touches LGPL-3.0-or-later libhexagonrpc code and
+GPL-3.0-or-later tests; other patches touch GPL-3.0-or-later files/tests.
+Original notices: HexagonRPC Contributors and Sensor Shell Contributors.
+Texts: LICENSES/LGPL-3.0.txt, LICENSES/hexagonrpc-GPL-3.0.txt.
+Changes:
+- 0001/0002: type-sequence marshalling, alignment and test corrections.
+- 0003/0004: confined registry I/O and complete parent mapping. Protocol
+  reference: Luca Weiss, https://github.com/linux-msm/hexagonrpc/pull/21,
+  head 9f987970f9bc3e72081b7966a1f4e766ce6af6f7, methods 5/24.
+- 0005: unchanged upstream f0dfd5095d3b7defc3b368f227337bfc6d6aef42,
+  Fady <me@fadyackad.dev>, 2026-09-19; original author/date/sign-off retained.
+  https://github.com/linux-msm/hexagonrpc/pull/27
+- 0006: large-listener validation, cleanup and regressions; empty-reply sizing
+  follows the same PR's 40e50412812adce9dddc2be9a4510ebce05eef89 correction.
+- 0007: confined apps_std frename (method 33).
+ABI references, without bundled Qualcomm code: https://github.com/qualcomm/fastrpc/tree/v1.0.7,
+inc/apps_std.h, src/apps_std_imp.c, src/apps_std_skel.c,
+inc/adsp_listener.h and src/listener_android.c.
+
+libssc and SensorProxy
+----------------------
+Source: https://codeberg.org/DylanVanAssche/libssc.git
+54dd13e36d65c21263cf5b0f4a70c230a77b26bc (0.4.4).
+File: device/sensors/libssc/patches/0001-propagate-test-process-exit-status.patch.
+License: GPL-3.0-or-later, Copyright 2022-2026 Dylan Van Assche;
+LICENSES/hexagonrpc-GPL-3.0.txt. Change: propagate mocking/ssc_server/ssc-server.in
+exit status; original notices retained.
+
+Source: https://gitlab.freedesktop.org/hadess/iio-sensor-proxy.git
+0085ddf8ecb173a1c5fcf2344aa40e561125354f.
+Files: device/sensors/libssc/sensorproxy-patches/.
+- 0003/0004/0005/0006: unchanged coldplug, serialized SSC polling,
+  pending-claim cancellation and availability patches from the Xiaomi Pad 6
+  Pro snapshot 7df47f82f6e6ca5a04ab02fbcc4a3486c6a259be,
+  device/sensors/patches/, with the same basenames. Original author headers
+  retained; src/iio-sensor-proxy.c and src/drv-ssc-accel.c are GPL-3.0-only,
+  Copyright 2014-2016 Bastien Nocera; LICENSES/hexagonrpc-GPL-3.0.txt.
+- 0001: local discovery-notification regression in tests/ssc-test.py,
+  GPL-2.0-or-later, Martin Pitt and Bastien Nocera; retained notices and
+  LICENSES/systemd-GPL-2.0-or-later.txt.
+The piano-sensors and piano-iio-sensor-proxy packages preserve these upstream
+Meson sources/licences; package, service, udev and registry staging are MIT.
+
+Audio topology and UCM
+----------------------
+Sources: https://github.com/linux-msm/audioreach-topology
+2af1f1ebb8d4fd03b5f53891467ddde2e208a8a0, Copyright Linaro Ltd, 2023;
+https://github.com/blu-sharky/debian-piano
+a75f8c5d5fa099d65c171ac839c2e3bb6c63ec45, Copyright 2026 bluseliu50 and
+piano mainline contributors.
+Files: device/audio/Piano-Capture-Diag.m4, Xiaomi-Pad-8-Pro.m4 and piano/.
+License: BSD-3-Clause; LICENSES/audioreach-BSD-3-Clause.txt.
+Origins: AudioReach SM8550-HDK.m4, module_i2s.m4 and device/stream playback
+subgraphs; debian-piano topology/Xiaomi-Pad-8-Pro.m4 and
+piano/{module_tdm,subgraph-device-tdm-playback}.m4.
+Changes: VA_CODEC_DMA_TX_0 capture with MultiMedia3, piano playback, upstream
+tokens, no DSP volume module, WR_SH output port 1; upstream macros remain an
+external dependency. Amplifier presets are separate stock firmware.
+
+Files: device/audio/ucm2/.
+Sources: the same debian-piano snapshot's rootfs/overlay/usr/share/alsa/ucm2/
+Qualcomm/sm8750/Xiaomi-Pad-8-Pro/{HiFi.conf,Xiaomi-Pad-8-Pro.conf} (MIT,
+LICENSES/debian-piano-MIT.txt); https://github.com/alsa-project/alsa-ucm-conf
+at d260eedd1900dbf3b477047e048d5382a5f50e24, Qualcomm/sm8750/MTP/ and
+codecs/qcom-lpass/va-macro/DMIC0*Seq.conf (BSD-3-Clause, Copyright 2019 ALSA
+project; LICENSES/alsa-ucm-conf-BSD-3-Clause.txt).
+Changes: piano card name, capped four-channel speaker gains, two capture
+channels VA DEC0/DMIC0 and DEC1/DMIC2 from the stock mixer topology.
+
+TinyALSA and QRTR diagnostics
+----------------------------
+TinyALSA: https://github.com/tinyalsa/tinyalsa.git
+961babfe962e71d952ae734074cc89576b28a9e7, src/ and utils/tinymix.c,
+unmodified upstream Makefiles. BSD-3-Clause, Copyright 2011 The Android Open
+Source Project, 2019 The Linux Foundation and per-file authors;
+LICENSES/tinyalsa-BSD-3-Clause.txt. utils/optparse.h retains its public-domain
+dedication. Lock: device/audio/tinyalsa/source.json.
+QRTR: https://github.com/linux-msm/qrtr.git
+29e36ae164389580a0f8ea7a7fdb728140ae978d, src/lookup.c, lib/ and include/,
+unmodified Meson targets. BSD-3-Clause, Copyright 2015 Sony Mobile
+Communications Inc. and per-file authors; LICENSES/qrtr-BSD-3-Clause.txt.
+Lock: device/qrtr/source.json. Both wrappers are MIT; no binaries are vendored.
+
+Keyboard, charging, Bluetooth and camera
+---------------------------------------
+Keyboard kernel implementation stays in the Linux repository; source:
+https://github.com/blu-sharky/linux-piano
+f8afe7ff7127f46f5339fdaf5c24ecbffbfbb92b, GPL-2.0-only,
+map220v, ianchb and bluseliu50. Integration files: device/keyboard/.
+
+MiPPS: device/power/mipps-auth/upstream/xiaomi-mipps-auth, from
+https://github.com/blu-sharky/piano-mipps-auth
+ccdc3ce7f5200ef736d7d552eb7b387ea3bb6fd9, fork of ianchb/xiaomi-mipps-auth
+9176efbdf276b874fc0a97912a914449a88155fb.
+Authors: ianchb <i@4t.pw>, bluseliu50
+<265648257+bluseliu50@users.noreply.github.com>. GPL-2.0-only per script SPDX;
+no root LICENSE was supplied. Local patch/hashes: device/power/mipps-auth/source.json.
+Service and udev integration is project MIT.
+
+Bluetooth: device/bluetooth/bluetooth-address.py, from
+https://github.com/slwyts/Project-SunUEFI
+6a8763d010adb00b18911d6d12e6dd02869f98b9, 2026-10-10,
+linux/bsp/common/usr/lib/piano/bluetooth-address.py, author slwyts, MIT.
+Changes: provisioned address file, qcom,wcn7860-bt match, no persist mounts,
+MGMT command-status decoding, bounded bluetooth.service ExecStartPre.
+device/bluetooth/test_address.py is project MIT.
+
+Camera: device/camera/piano-camerad.c, from the debian-piano snapshot above
+(commits fd6266d, 25babfe, 197c907), Copyright 2026 bluseliu50 and piano
+mainline contributors, MIT; device/camera/LICENSE. Loopback options share
+that source. Original hashes and local changes: device/camera/source.json.
+v4l2loopback v0.15.4 is separately built, GPL-2.0-or-later; its COPYING is
+shipped with the matching-kernel module package.
+
+Ubuntu and GNOME overrides
+--------------------------
+Files: ubuntu/systemd/worker-cap.patch, unchanged systemd commit
+181a9f65a7cf9059da0f2a44e2152d7636446b33, Daan De Meyer,
+https://github.com/systemd/systemd
+src/udev/udev-manager.c, GPL-2.0-or-later; LICENSES/systemd-GPL-2.0-or-later.txt.
+Pinned source and hashes: ubuntu/systemd/source.json.
+
+Files: packaging/piano-ubuntu-desktop/usr/share/gnome-shell/extensions/piano-osk-guard@io.github.piano/.
+Project GPL-2.0-or-later extension wrapping, without copying, GNOME Shell 50
+js/ui/keyboard.js KeyboardManager.maybeHandleEvent() (50.1, Ubuntu
+50.1-0ubuntu1.3). Change: call the original only when the event has an actor.
+GNOME Shell 51 removed the method in 5e5b0f49d35ae2c1626eb2ee386befb608a8d5e4.
+tools/test-gnome-osk-guard.py uses caller-supplied verified source;
+GPL-2.0-or-later, LICENSES/GPL-2.0-only.txt with the per-file "or later" grant.
+
+Files: ubuntu/gnome-settings-daemon/ and ubuntu/gnome-control-center/ patches.
+Pinned Ubuntu GNOME 50 source versions, archive and patch hashes: source.json
+in each directory. GPL-2.0-or-later, original per-file copyrights and COPYING.
+Changes: power-button lock behavior; enum adaptation credits Phoebe Harris,
+b80693acdce2931550081b8d27550e19c9eed36d,
+https://gitlab.gnome.org/GNOME/gnome-settings-daemon/-/merge_requests/448
+Blank-action design reference: Cédric Bellegarde,
+89f1042d9068ba5ea2f51fa846fcac148a490479,
+https://gitlab.gnome.org/GNOME/gnome-settings-daemon/-/merge_requests/320
+Rebuilt binaries preserve Ubuntu packaging and copyright files.
+
+Iris VA-API
+-----------
+Source: https://github.com/phxinyang/qualcomm-iris-vaapi
+f587b14e6b22955c7250a45ff5f43588bbce2114, descended from mxsrc/libva-v4l2
+and Bootlin libva-v4l2-request. Files: device/video/iris-vaapi/ fetched sources,
+COPYING* and source.json; MIT and LGPL-2.1 per file.
+Local client policy (MIT): withhold HEVC Main/Main10 from the official Chrome
+executable using AT_EXECFN. Corresponding source is included in piano-iris-vaapi
+debs. Kernel patches remain in the Linux repository with Xilin Wu / Radxa
+attribution and GPL-2.0-only licensing.
+
+Resources telemetry
+-------------------
+Source: https://gitlab.gnome.org/GNOME/Incubator/resources
+locked by apps/resources/source.json.
+Files: apps/resources/patches and ubuntu/resources/backport.patch.
+License: GPL-3.0-or-later; apps/resources/COPYING, ubuntu/resources/COPYING.
+Copyright: ManicRobot, nokyan, Resources contributors; local changes 2026 yzddmr6.
+Changes: telemetry and Ubuntu context adaptations. Adreno ID/name mapping follows
+nvtop extract_gpuinfo_msm_utils.c (GPL-3.0-or-later):
+https://github.com/Syllo/nvtop/commit/71094a9f7dfbfe7cbe9faebfdf055e580a034283

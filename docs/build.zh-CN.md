@@ -16,7 +16,7 @@ qemu-aarch64 binfmt_misc 处理程序的 x86_64（Ubuntu 的 `qemu-user-static` 
 | 阶段 | 工具 |
 |---|---|
 | 内核 | Git、Python 3、GCC、AArch64 GNU 交叉编译器、make、bc、bison、flex、pkg-config、OpenSSL 和 libelf 开发文件、gzip、cpio、kmod（`depmod`）、flock；ccache 可选 |
-| 启动 DTB 与镜像组 | `device-tree-compiler`（`fdtget`、`fdtput`）、`python3-libfdt`、AOSP libufdt 的 `ufdt_apply_overlay`、AOSP `avbtool.py`（尚无获取脚本）、`openssl` |
+| 启动 DTB 与镜像组 | `device-tree-compiler`（`fdtget`、`fdtput`）、`python3-libfdt`、AOSP libufdt 的 `ufdt_apply_overlay`、AOSP `avbtool.py`（[版本锁](../tools/aosp-avb.json)）、`openssl` |
 | 软件包 | `dpkg-deb`、`python3-debian`、`g++-13-aarch64-linux-gnu`、`nlohmann-json3-dev`、`qemu-user-static`、`m4`、`alsatplg` |
 | Mesa | Meson 1.9、Ninja、Mako、PyYAML、Python packaging、Bison、Flex、原生 `glslangValidator`、ARM64 GCC/G++ 交叉工具链，以及指定 ARM64 sysroot 的 Meson cross file；sysroot 使用 Ubuntu 26.04 的 libdrm、zlib、zstd、expat、Wayland 1.24、wayland-protocols、X11/XCB 开发包 |
 | Ubuntu 基础系统 | `7z`、`unsquashfs`、squashfs-tools-ng 1.2（`sqfs2tar`）、`apt`、`python3-apt` |
@@ -24,6 +24,7 @@ qemu-aarch64 binfmt_misc 处理程序的 x86_64（Ubuntu 的 `qemu-user-static` 
 
 ```bash
 sh tools/fetch-aosp-mkbootimg.sh       # 固定版本检出到 tools/local/aosp-mkbootimg
+sh tools/fetch-aosp-avb.sh                                # 校验固定提交、SHA-256 和版本
 sh tools/fetch-busybox-arm64.sh        # 预期 ".../usr/bin/busybox: OK"
 ```
 
@@ -114,7 +115,7 @@ MESA_SOURCE=<Mesa checkout at mesa/source.json> CROSS_FILE=<arm64 cross file> \
 # piano-device-support、piano-mesa、piano-ubuntu-desktop
 python3 tools/build-device-debs.py --output out/device-debs --version 0.1+<YYYYMMDD>.<n> \
   --thp-live out/piano-thp-arm64/piano-thp-live --mesa-build out/mesa \
-  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool <avbtool.py>
+  --busybox tools/local/busybox-arm64/usr/bin/busybox --avbtool tools/local/aosp-avb/avbtool.py
 # 音频拓扑（AudioReach 检出到 device/audio/source.json 指定提交），然后构建 piano-local-firmware
 mkdir -p out/audio
 m4 -I <audioreach-topology checkout> device/audio/Piano-Capture-Diag.m4 > out/audio/Piano-Capture-Diag.conf
@@ -157,7 +158,7 @@ python3 tools/build-persistent-boot.py \
   --kernel <root>/boot/vmlinuz-<release> --kernel-release <release> \
   --dtb <root>/usr/lib/linux-image-<release>/piano-boot.dtb --initrd <root>/boot/initrd.img-<release> \
   --profile <boot-profile.json> --root-partuuid <linux_rootfs PARTUUID> --bt-address-file <bluetooth-address> \
-  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool <avbtool.py> --key <boot-signing.pem> \
+  --mkbootimg tools/local/aosp-mkbootimg/mkbootimg.py --avbtool tools/local/aosp-avb/avbtool.py --key <boot-signing.pem> \
   --output out/ubuntu-set-<release>
 ```
 

@@ -31,7 +31,7 @@
 | Android root | 用 Magisk 或 KernelSU-Next 修补 `init_boot_a`，用于读取分区（*手工*，按该项目的说明操作） |
 | 小米磁吸键盘 | 安装本机触控标定之前唯一的输入方式（[第 10 步](#10-安装本机文件)） |
 | Linux x86_64 主机 | Android platform-tools（`adb`、`fastboot`）、Python 3.11 或更高版本、Git、`tar`、`zstd`、`openssl`、`uuidgen`、`sgdisk`、`sfdisk`、`losetup`、`mkfs.ext4`、`img2simg`、`sha256sum`、`ip`（iproute2）、包含 `scp` 的 OpenSSH 客户端、`telnet` 和 `nc`（OpenBSD netcat） |
-| AOSP `avbtool.py` | 来自 AOSP `external/avb`（尚无获取脚本） |
+| AOSP `avbtool.py` | 由 [tools/aosp-avb.json](../tools/aosp-avb.json) 固定，按下方命令获取并校验 |
 | 本仓库 | 检出到发布版 `RELEASE-NOTES.md` 中的集成提交；在下方设置 REPO 后获取 AOSP mkbootimg |
 | 发布目录 | 同一版本的全部文件，不与其他版本混用 |
 | 主机可用空间 | 约 40 GB：备份（测试机 16 GB）、发布目录（约 9 GB）与数据镜像 |
@@ -48,6 +48,7 @@ WORK=/absolute/path/to/private-install-work
 mkdir -p "$WORK"
 cd "$WORK"
 sh "$REPO/tools/fetch-aosp-mkbootimg.sh"
+sh "$REPO/tools/fetch-aosp-avb.sh"
 (cd "$RELEASE" && sha256sum -c SHA256SUMS)
 ```
 
@@ -173,7 +174,7 @@ openssl genrsa -out boot-signing.pem 4096
 ```bash
 python3 "$REPO/tools/local/aosp-mkbootimg/unpack_bootimg.py" --boot_img backup/vendor_boot_a.img --out /tmp/vb
 # 头版本、页大小、kernel/ramdisk/tags 加载地址、dtb 地址
-python3 <avbtool.py> info_image --image backup/boot_a.img
+python3 "$REPO/tools/local/aosp-avb/avbtool.py" info_image --image backup/boot_a.img
 # "Rollback Index:" 与所有 "Prop: com.android.build.boot.*" 行；init_boot_a、vendor_boot_a 同样处理
 ```
 

@@ -35,7 +35,7 @@ Steps that use standard commands because no project tool exists yet are marked *
 | Root in Android | Magisk or KernelSU-Next in a patched `init_boot_a`, to read partitions (*manual*, follow that project's instructions) |
 | Xiaomi magnetic keyboard | the only input until your touch calibration is installed ([step 10](#10-install-your-units-files)) |
 | Linux x86_64 host | Android platform-tools (`adb`, `fastboot`), Python 3.11 or later, Git, `tar`, `zstd`, `openssl`, `uuidgen`, `sgdisk`, `sfdisk`, `losetup`, `mkfs.ext4`, `img2simg`, `sha256sum`, `ip` (iproute2), an OpenSSH client including `scp`, `telnet`, and `nc` (OpenBSD netcat) |
-| AOSP `avbtool.py` | from AOSP `external/avb` (no fetch script yet) |
+| AOSP `avbtool.py` | pinned by [tools/aosp-avb.json](../tools/aosp-avb.json), fetched and verified below |
 | This repository | checked out at the integration commit in the release's `RELEASE-NOTES.md`; fetch AOSP mkbootimg after setting REPO below |
 | The release directory | every file of one release, not mixed with other releases |
 | Free host space | about 40 GB: the backup (16 GB on the test unit), the release (about 9 GB) and the data image |
@@ -52,6 +52,7 @@ WORK=/absolute/path/to/private-install-work
 mkdir -p "$WORK"
 cd "$WORK"
 sh "$REPO/tools/fetch-aosp-mkbootimg.sh"
+sh "$REPO/tools/fetch-aosp-avb.sh"
 (cd "$RELEASE" && sha256sum -c SHA256SUMS)
 ```
 
@@ -187,7 +188,7 @@ values of your stock images:
 ```bash
 python3 "$REPO/tools/local/aosp-mkbootimg/unpack_bootimg.py" --boot_img backup/vendor_boot_a.img --out /tmp/vb
 # header version, page size, kernel, ramdisk and tags load addresses, dtb address
-python3 <avbtool.py> info_image --image backup/boot_a.img
+python3 "$REPO/tools/local/aosp-avb/avbtool.py" info_image --image backup/boot_a.img
 # "Rollback Index:" and every "Prop: com.android.build.boot.*" line; repeat for init_boot_a and vendor_boot_a
 ```
 
