@@ -59,17 +59,18 @@ BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash to
 - 产品构建使用 `BUILD_MODULES=1`，交付与内核匹配的模块；启动必需的依赖须内建或完整纳入发行版 initrd。
   内核驱动、DTS 和配置维护在独立内核仓库。
 
-## 2. ABI 条目
+## 2. 发布记录
 
-每个打包内核有唯一的 release，格式为 `<version>-piano<N>`。内核提交或最终 `.config` 变化时，
-包括只修改 DTS 或更换工具链，都取下一个 `N`，不得复用或降低编号。
+复现发布版本时保留 `kernel/source.json` 和 `kernel/abi.json` 原样。
+ABI 分配与 pin 更新见 [RELEASE.md 的维护者流程](RELEASE.md#release-preparation-maintainers)。
 
-1. 在内核仓库的 `arch/arm64/configs/piano-release.config` 中设置
-   `CONFIG_LOCALVERSION="-piano<N+1>"` 并提交。
-2. 将 `kernel/source.json` 的 `commit` 更新为新的内核 HEAD，按第 1 步构建。
-3. 运行第 4 步的打包器。release 未登记时，工具会停止并打印待登记条目；给该条目加上
-   `"upload": 1`，追加到 `kernel/abi.json` 的 `releases`。一起提交 `kernel/source.json`
-   和 `kernel/abi.json`，再运行打包器。
+### 本地内核开发
+
+本地修改使用独立内核检出和输出目录，按内核的 Kbuild 流程构建；不要为了试验改发布锁。
+从 `defconfig` 开始，用 `scripts/kconfig/merge_config.sh` 按 `kernel/source.json` 的
+`release_config_fragments` 顺序合并，再按需追加本地片段，运行 `olddefconfig`。
+用 `scripts/config` 将 `CONFIG_LOCALVERSION` 设为独立的开发后缀（如 `-piano-dev`）。
+这种构建用于本地开发，不使用发布打包器；纳入发布时由维护者执行上述登记流程。
 
 ## 3. 启动 DTB
 

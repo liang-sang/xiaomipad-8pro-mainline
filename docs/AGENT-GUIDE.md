@@ -97,7 +97,7 @@ python3 -S tools/stage-firmware.py --firmware-dir <stock modem_a image/ director
 
 ## 3. Build pipeline
 
-Order: kernel (§3.1) → ABI entry (§3.2) → boot DTB (§3.3) → kernel package (§3.4) → device and
+Order: kernel (§3.1) → release record (§3.2) → boot DTB (§3.3) → kernel package (§3.4) → device and
 firmware packages (§3.5) → root filesystem (§4.4) → boot image set (§3.6). Host tools are listed in
 [build.zh-CN.md](build.zh-CN.md); additionally `dpkg-deb`, `python3-debian`, `device-tree-compiler`
 (`fdtget`/`fdtput`), `python3-libfdt`, AOSP libufdt's `ufdt_apply_overlay`, `m4` and `alsatplg`.
@@ -119,26 +119,11 @@ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_release"
 - A build without `piano-release.config` keeps a diagnostic suffix such as `7.2.6-piano-diag` and
   cannot be packaged.
 
-### 3.2 ABI bump (every packaged kernel)
+### 3.2 Release record
 
-The release is `<version>-piano<ABI>`. Take the next integer whenever the commit or the resulting
-`.config` of a packaged kernel changes, including DTS-only and toolchain changes; never reuse or
-decrease it. `CONFIG_MODVERSIONS` is off, so a module ABI break is not detected otherwise.
-
-1. In the kernel repository, set `CONFIG_LOCALVERSION="-piano<N+1>"` in
-   `arch/arm64/configs/piano-release.config` and commit.
-2. Set `commit` in `kernel/source.json` to the new kernel HEAD.
-3. Build (§3.1) and run the packager (§3.4). For an unrecorded release it stops and prints the
-   entry to add:
-   ```
-   # expect "7.2.6-piano<N+1> is not recorded in .../kernel/abi.json; after review add and commit"
-   #        '{"kernel_release": "7.2.6-piano<N+1>", "kernel_commit": "...", "config_sha256": "..."}'
-   ```
-4. Append that object with `"upload": 1` to `releases` in `kernel/abi.json`, commit
-   `kernel/source.json` and `kernel/abi.json` together, and run the packager again.
-
-"`<release>` already belongs to `<commit>` ... raise the ABI" means the release was allocated to
-another build. Raise `upload` only to repackage the identical build with different package content.
+ABI allocation, kernel pins and release notes are defined in
+[RELEASE.md](RELEASE.md#release-preparation-maintainers). Rebuilding a release does not change its
+locks; see [BUILD.md](BUILD.md#local-kernel-development) for local development.
 
 ### 3.3 Boot DTB
 
@@ -662,7 +647,7 @@ fastboot -s <SERIAL> reboot
 
 ### 5.1 Prepare
 
-- Build the new package with the next ABI (§3.2–§3.4).
+- Use the kernel package registered for the target release (§3.2–§3.4).
 - Keep a host copy of the current Ubuntu set (§6.6) and of the Android set.
 - For a reboot with nobody at the tablet, developer mode must be enabled (§7.1).
 
@@ -1053,18 +1038,9 @@ image content.
 
 ## 9. Evidence and documentation
 
-- Status levels: *to be researched*, *source lead*, *offline pass*, *device pass*, *device fail*.
-  Untested is not failed. Source code, a probe or an active service, QEMU and a successful build are
-  not a device pass.
-- Bind every device result to the device model and stock build, the kernel commit and release, the
-  integration commit, the image set's `SHA256SUMS`, the scenario (debug RAM boot or release cold
-  boot) and the location of the evidence. Results from another tablet or another candidate do not
-  carry over.
-- Keep earlier failures; a later pass states its own scope instead of replacing them.
-- Public status lives in the [README support matrix](../README.md#hardware-support) (one line per
-  feature) and [STATUS.md](STATUS.md) (test configuration, known issues, roadmap). Raw logs,
-  captures and device records stay in ignored `private/` directories and are never committed.
-- Hardware reports name the device model, stock build, kernel release and image set identity and
-  omit serial numbers, Bluetooth addresses, calibration and personal data.
-- Project kernel commits carry no `Signed-off-by`, `Fixes:` or `Tested-by` tags; a human contributor
-  adds them before any upstream submission. Agents do not add human sign-offs.
+Follow [CONTRIBUTING.md](../CONTRIBUTING.md#commits-and-attribution) for attribution,
+`Fixes:` / `Link:` / `Reported-by:` and human attestations; assistants must not add anyone's
+`Signed-off-by:` or `Tested-by:`. Record results using its
+[evidence requirements](../CONTRIBUTING.md#evidence).
+Public hardware status lives in the [README support matrix](../README.md#hardware-support)
+and [STATUS.md](STATUS.md).

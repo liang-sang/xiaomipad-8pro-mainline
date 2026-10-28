@@ -61,18 +61,20 @@ BUILD_MODULES=1 KERNEL_SOURCE=../linux OUT_DIR="$PWD/out/kernel-release" bash to
   toolchain or source location needs a new one.
 - Without `piano-release.config` the release keeps a diagnostic suffix and cannot be packaged.
 
-## 2. ABI entry
+## 2. Release record
 
-Every packaged kernel has a unique release `<version>-piano<N>`. Take the next `N` whenever the
-kernel commit or the resulting `.config` changes, including DTS-only and toolchain changes; never
-reuse or lower it.
+Rebuilding a release leaves `kernel/source.json` and `kernel/abi.json` unchanged.
+ABI allocation and pin updates are in the [maintainer release procedure](RELEASE.md#release-preparation-maintainers).
 
-1. In the kernel repository set `CONFIG_LOCALVERSION="-piano<N+1>"` in
-   `arch/arm64/configs/piano-release.config` and commit.
-2. Set `commit` in `kernel/source.json` to the new kernel HEAD and build (step 1).
-3. Run the packager (step 4). For an unrecorded release it stops and prints the entry; append it
-   with `"upload": 1` to `releases` in `kernel/abi.json`, commit `kernel/source.json` and
-   `kernel/abi.json` together and run the packager again.
+### Local kernel development
+
+Use a separate kernel checkout and output directory with the kernel's Kbuild workflow for local
+changes; do not edit release locks to run an experiment. Start from `defconfig`, merge
+`release_config_fragments` from `kernel/source.json` in order with
+`scripts/kconfig/merge_config.sh`, append any local fragments, and run `olddefconfig`.
+Use `scripts/config` to set `CONFIG_LOCALVERSION` to a distinct development suffix such as
+`-piano-dev`. These builds are for local development and do not use the release packager;
+maintainers register a candidate through the release procedure above.
 
 ## 3. Boot DTB
 

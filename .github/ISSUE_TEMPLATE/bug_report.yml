@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible problem on Xiaomi Pad 8 Pro (piano).
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [CONTRIBUTING.md](https://github.com/yzddmr6/xiaomipad-8pro-mainline/blob/main/CONTRIBUTING.md#evidence).
+        Remove serial numbers, radio addresses, credentials, calibration and personal data from logs.
+  - type: input
+    id: variant
+    attributes:
+      label: Device and panel variant
+      description: Model, storage capacity and panel variant (or unknown).
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Stock build, kernel release and commit, integration commit or release image.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include whether this is an install, upgrade, cold boot or RAM test.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: last_good
+    attributes:
+      label: Last working version
+      description: Give the version or say unknown / never worked.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs and untested conditions
+      description: Include relevant errors, checks already performed and remaining unknowns.

@@ -86,7 +86,7 @@ python3 -S tools/stage-firmware.py --firmware-dir <stock modem_a image/ director
 
 ## 3. 构建流程
 
-顺序：内核（§3.1）→ ABI 条目（§3.2）→ 启动 DTB（§3.3）→ 内核包（§3.4）→ 设备包与固件包（§3.5）→
+顺序：内核（§3.1）→ 发布记录（§3.2）→ 启动 DTB（§3.3）→ 内核包（§3.4）→ 设备包与固件包（§3.5）→
 根文件系统（§4.4）→ 启动镜像组（§3.6）。主机工具见 [build.zh-CN.md](build.zh-CN.md)；另需 `dpkg-deb`、
 `python3-debian`、`device-tree-compiler`（`fdtget`/`fdtput`）、`python3-libfdt`、AOSP libufdt 的
 `ufdt_apply_overlay`、`m4` 和 `alsatplg`。
@@ -106,23 +106,10 @@ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["kernel_release"
 - 增量构建沿用同一 OUT（已安装 ccache 时自动使用）；更换工具链或源码位置需要新的 OUT。
 - 不含 `piano-release.config` 的构建保留诊断后缀（如 `7.2.6-piano-diag`），不能打包。
 
-### 3.2 升 ABI（每个打包的内核）
+### 3.2 发布记录
 
-release 为 `<version>-piano<ABI>`。被打包内核的提交或最终 `.config` 一变（含只改 DTS、更换工具链），
-就取下一个整数；不复用、不回退。`CONFIG_MODVERSIONS` 关闭，否则无法发现模块 ABI 破坏。
-
-1. 在内核仓库把 `arch/arm64/configs/piano-release.config` 中的 `CONFIG_LOCALVERSION` 改为 `"-piano<N+1>"` 并提交。
-2. 把 `kernel/source.json` 的 `commit` 改为新的内核 HEAD。
-3. 构建（§3.1）并运行打包器（§3.4）。release 未登记时，打包器停止并打印应追加的条目：
-   ```
-   # 预期 "7.2.6-piano<N+1> is not recorded in .../kernel/abi.json; after review add and commit"
-   #      '{"kernel_release": "7.2.6-piano<N+1>", "kernel_commit": "...", "config_sha256": "..."}'
-   ```
-4. 把该对象加上 `"upload": 1` 追加到 `kernel/abi.json` 的 `releases`，`kernel/source.json` 与
-   `kernel/abi.json` 一起提交，再运行打包器。
-
-"`<release>` already belongs to `<commit>` ... raise the ABI" 表示该 release 已分配给另一构建。
-只有以不同包内容重新打包同一构建时才增加 `upload`。
+ABI、内核 pin 和发布说明的维护流程只在 [RELEASE.md](RELEASE.md#release-preparation-maintainers)
+定义。复现发布版本不改锁文件；本地开发见[构建指南](build.zh-CN.md#本地内核开发)。
 
 ### 3.3 启动 DTB
 
@@ -610,7 +597,7 @@ fastboot -s <SERIAL> reboot
 
 ### 5.1 准备
 
-- 以下一个 ABI 构建新包（§3.2–§3.4）。
+- 使用目标发布版本已登记的内核包（§3.2–§3.4）。
 - 在主机上保存当前 Ubuntu 镜像组（§6.6）和 Android 镜像组的副本。
 - 无人在平板旁时重启，须已开启开发者模式（§7.1）。
 
@@ -956,12 +943,7 @@ echo "INTF1 $a $($bb devmem 0x0ae360ac 32)  INTF2 $b $($bb devmem 0x0ae370ac 32)
 
 ## 9. 证据与文档
 
-- 状态等级：*待调研*、*源码线索*、*离线通过*、*真机通过*、*真机失败*。未测试不等于失败。源码存在、probe 或服务处于
-  活动状态、QEMU 和构建成功都不是真机通过。
-- 每个真机结论绑定设备型号与原厂版本、内核提交与 release、集成提交、镜像组的 `SHA256SUMS`、测试场景（调试 RAM
-  启动或正式冷启动）和证据位置。其他平板或其他候选的结果不能沿用。
-- 保留历史失败；之后的通过结论写明自身适用范围，而不是覆盖失败记录。
-- 公开状态维护在 [README 硬件支持表](../README.zh-CN.md)（每项一行）和 [STATUS.md](STATUS.md)（测试配置、已知问题、
-  路线图）。原始日志、采集数据和设备记录放在被忽略的 `private/` 目录，从不提交。
-- 硬件报告写明设备型号、原厂版本、内核 release 和镜像组身份，去除序列号、蓝牙地址、标定数据和个人信息。
-- 项目内核提交不带 `Signed-off-by`、`Fixes:` 或 `Tested-by` 标签；上游投递前由人工贡献者补充。代理不添加人工署名。
+提交归属、`Fixes:` / `Link:` / `Reported-by:` 和人工签署要求见
+[CONTRIBUTING.md](../CONTRIBUTING.md#commits-and-attribution)；代理不得代任何人添加
+`Signed-off-by:` 或 `Tested-by:`。按同一文件的[证据要求](../CONTRIBUTING.md#evidence)记录结果。
+公开硬件状态维护在 [README 支持矩阵](../README.zh-CN.md#硬件支持) 和 [STATUS.md](STATUS.md)。

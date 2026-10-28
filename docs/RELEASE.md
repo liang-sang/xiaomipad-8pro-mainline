@@ -76,6 +76,30 @@ size and load addresses).
 `piano-boot.dtb` in the kernel package were made from the stock build OS3.0.303.0.WPYCNXM; with
 another stock build, prepare the DTB and the set from your own images.
 
+## Release preparation (maintainers)
+
+Release changes are coordinated through the issue described in
+[CONTRIBUTING.md](../CONTRIBUTING.md#where-to-send-changes). For an existing release, rebuild
+from its committed locks without editing them. Local development builds are described in
+[BUILD.md](BUILD.md#local-kernel-development).
+
+When preparing a new installable kernel, maintainers allocate `<version>-piano<N>` using the
+next unused integer in [kernel/abi.json](../kernel/abi.json). Never reuse, decrease or reset the
+number on an upstream update. Allocate a new ABI when the kernel commit, resulting `.config`
+or toolchain changes, including DTS-only changes; `CONFIG_MODVERSIONS` is off.
+
+1. Select the reviewed kernel commit and ordered `release_config_fragments` in
+   [kernel/source.json](../kernel/source.json). Set `kernel_release` to the new release name;
+   the builder applies its suffix to `CONFIG_LOCALVERSION` after merging the kernel fragments.
+2. Build with [BUILD.md](BUILD.md#1-kernel). Record the commit, compiler and final `.config`
+   SHA-256 from `build-result.json`.
+3. Append the release, `kernel_commit`, `config_sha256` and `"upload": 1` to `kernel/abi.json`.
+   Commit both locks together, then package the recorded build. An existing release with a
+   different commit or configuration is refused. Raise `upload` only to repackage the same
+   build with changed package content.
+4. Prepare the bilingual change list and release notes for that candidate. Record validation
+   under [Release validation](#release-validation).
+
 ## Building a release
 
 Host tools, none run as root: `dpkg-deb`, `python3-debian`, `img2simg`, `sgdisk`, `openssl`, `zip`,
@@ -145,18 +169,14 @@ python3 tools/build-release.py --rootfs-build out/rootfs-<version> \
   files are read, never copied or recorded; the scan does not see inside compressed files). It
   hard-links the root image, so the release directory must be on the same filesystem as the build.
 
-Before publishing, install the release from scratch on a tablet following INSTALL and run
-`tools/piano-cold-boot-accept.py` against the installed system; the result is recorded in
-[STATUS.md](STATUS.md).
+## Release validation
 
-The v0.5.0 change list is [changes/v0.5.0.md](../packaging/release/changes/v0.5.0.md).
-The kernel is allocated as `7.2.10-piano27`; `kernel/source.json` pins the source
-and `kernel/abi.json` records the exact commit and build configuration.
-Before publishing,
-verify the power-button physical press/wake and settings UI, cold-boot profile
-retention with the packaged configuration, USB host/charging, and Showtime
-playback from a fresh user session. The optional mpv fragment remains excluded
-until its separate playback checks in [device/media](../device/media/desktop.md) pass.
+List the installation, upgrade and cold-boot checks actually performed, their results and
+untested paths. Bind each result to the candidate image/integration commit, kernel release and
+commit, device/panel variant and stock build, following
+[CONTRIBUTING.md](../CONTRIBUTING.md#evidence). Keep the evidence summary in
+[STATUS.md](STATUS.md); a previous release's result does not validate a new candidate.
+Use the current cold-boot procedure in [AGENT-GUIDE.md §8.4](AGENT-GUIDE.md).
 
 ## Publishing
 
