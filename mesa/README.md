@@ -42,3 +42,5 @@ pinned upstream includes it; package builds alone do not prove GPU rendering.
 
 `turnip-a8xx-runtime-unroll.patch` adds bounded runtime loop unrolling and read scheduling for A8xx compute shaders; remove it when the pinned upstream includes equivalent changes.
 `turnip-ssbo-wide-reads.patch` uses exact-width aligned read-only SSBO accesses with matching descriptor strides; remove it when the pinned upstream includes equivalent changes.
+
+`turnip-a8xx-word-reuse.patch` reuses immutable word loads across byte-wise compute loop iterations on A8xx. This is a local MIT-licensed change; remove it when the pinned upstream includes equivalent changes.

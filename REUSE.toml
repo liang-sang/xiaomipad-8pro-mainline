@@ -224,6 +224,7 @@ SPDX-License-Identifier = "GPL-3.0-only"
 [[annotations]]
 path = [
   "mesa/piano-fixes.patch",
+  "mesa/turnip-a8xx-word-reuse.patch",
 ]
 SPDX-FileCopyrightText = "Mesa contributors; The piano mainline project contributors"
 SPDX-License-Identifier = "MIT"

@@ -32,6 +32,13 @@
       "upstream": "local, not yet submitted",
       "exit_condition": "Remove when the pinned upstream includes equivalent changes.",
       "license": "MIT"
+    },
+    {
+      "path": "mesa/turnip-a8xx-word-reuse.patch",
+      "sha256": "de83e37c18cb34b0647eac70b5e6e715a2de41b2b6ebef22d89e379d32b7a72b",
+      "upstream": "local, not yet submitted",
+      "exit_condition": "Remove when the pinned upstream includes equivalent changes.",
+      "license": "MIT"
     }
   ]
 }
