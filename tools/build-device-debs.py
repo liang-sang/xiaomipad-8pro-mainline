@@ -78,9 +78,15 @@ def main():
     if a.mesa_only and not a.mesa_build:
         ap.error('--mesa-only requires --mesa-build')
     if not (a.desktop_only or a.snap_graphics_only or a.mipps_auth_only or a.mesa_only):
-        for name in ('thp_live', 'mesa_build', 'busybox', 'avbtool'):
+        # The support package carries the device integration only; the desktop
+        # package needs the verified Mesa build, so --support-only does not.
+        required = ('thp_live', 'busybox', 'avbtool')
+        if not a.support_only:
+            required += ('mesa_build',)
+        for name in required:
             if getattr(a, name) is None:
-                ap.error('--' + name.replace('_', '-') + ' is required unless --desktop-only, --snap-graphics-only or --mipps-auth-only')
+                ap.error('--' + name.replace('_', '-') + ' is required unless --desktop-only, '
+                         '--snap-graphics-only or --mipps-auth-only')
     repo = Path(__file__).resolve().parents[1]
     if a.avbtool is not None:
         avb_pin = json.loads((repo / 'tools/aosp-avb.json').read_text())
