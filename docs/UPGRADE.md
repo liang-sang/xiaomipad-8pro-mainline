@@ -11,6 +11,10 @@ The release asset `piano-ubuntu-<version>-packages.zip` is the upgrade package: 
 directory holds every project package installed in that release's image. Always install the
 whole set together, never a single package.
 
+## Upgrading from v0.7.1 to v0.8.0
+
+Use `piano-ubuntu-v0.8.0-packages.zip` with the same steps below and install the complete package set, including the new kernel (Linux 7.2.10) with its matching camera loopback package, the updated desktop Mesa and gpu-2404 snap provider, and `piano-ubuntu-desktop` 0.8.0. Reboot to use the new kernel. Keep the previous kernel and rollback boot set. No repartitioning or root image reflash is needed.
+
 ## Upgrading from v0.7.0 to v0.7.1
 
 Use `piano-ubuntu-v0.7.1-packages.zip` with the same steps below and install the complete package set. This updates Mesa for the desktop and the gpu-2404 snap provider. The kernel remains Linux 7.2.10-piano40, and `piano-ubuntu-desktop` remains 0.7.0. Reboot so the snap provider is refreshed and applications load the new driver. Keep the previous kernel and rollback boot set. No repartitioning or root image reflash is needed.
